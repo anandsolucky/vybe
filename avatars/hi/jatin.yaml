@@ -7,6 +7,10 @@ description: Mature professional commentator — polish, class, and calm authori
 language: hi-IN
 status: active   # real library voice unlocked 2026-08-16 (Creator plan)
 
+vybe_label: "PRO VYBE"
+card_blurb: "Professional. Insightful. Cricket in its purest form."
+card_quote: "That's textbook placement and brilliant game awareness."
+
 engine: elevenlabs
 engine_config:
   model_id: eleven_v3

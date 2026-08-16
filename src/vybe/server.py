@@ -21,6 +21,27 @@ def make_handler(session, source_path: str, session_dir: Path):
             self.end_headers()
             self.wfile.write(body)
 
+        MIME = {"css": "text/css", "js": "application/javascript",
+                "woff2": "font/woff2", "png": "image/png", "svg": "image/svg+xml",
+                "html": "text/html; charset=utf-8"}
+
+        def _send_static(self, base: Path, rel: str) -> None:
+            path = (base / rel).resolve()
+            if not str(path).startswith(str(base.resolve())) or not path.is_file():
+                self._send(404, b"not found", "text/plain")
+                return
+            ctype = self.MIME.get(path.suffix[1:], "application/octet-stream")
+            self._send(200, path.read_bytes(), ctype)
+
+        def do_POST(self) -> None:
+            if self.path == "/avatar":
+                length = int(self.headers.get("Content-Length", 0))
+                avatar_id = self.rfile.read(length).decode("utf-8", "replace").strip()
+                ok = session.set_avatar(avatar_id)
+                self._send(200 if ok else 409, b"ok" if ok else b"too late", "text/plain")
+            else:
+                self._send(404, b"not found", "text/plain")
+
         def do_GET(self) -> None:
             if self.path in ("/", "/index.html"):
                 self._send(200, (UI_DIR / "player.html").read_bytes(),
@@ -28,6 +49,10 @@ def make_handler(session, source_path: str, session_dir: Path):
             elif self.path == "/hls.min.js":
                 self._send(200, (UI_DIR / "hls.min.js").read_bytes(),
                            "application/javascript")
+            elif self.path.startswith("/ui/"):
+                self._send_static(UI_DIR, self.path[4:])
+            elif self.path.startswith("/brand/"):
+                self._send_static(UI_DIR.parents[2] / "brand" / "assets", self.path[7:])
             elif self.path == "/state":
                 import json
                 self._send(200, json.dumps(session.state()).encode(),

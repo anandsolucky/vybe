@@ -17,7 +17,7 @@ from pathlib import Path
 from ..providers.asr_deepgram import DeepgramStreamingASR
 from ..providers.base import DeliverySegment
 from ..providers.tts_elevenlabs import ElevenLabsTTS
-from .avatars import Avatar
+from .avatars import Avatar, list_avatars, load_avatar
 from .capture import AVFoundationSource, CaptureMux, FileSource
 from .director import BEAT_GAP, Director, beats_from_words
 from . import audio
@@ -58,16 +58,53 @@ class LiveSession:
         self.manifest = {
             "video": "/media/source", "video_type": "file",
             "delay": self.delay, "sport": "cricket",
-            "avatar": avatar.name, "started": False, "segments": [], "drops": 0,
+            "avatar": avatar.name, "avatar_id": avatar.id,
+            "avatars": self._roster(cfg), "started": False,
+            "segments": [], "drops": 0,
         }
+        self.tts = self._build_tts(avatar)
+
+    @staticmethod
+    def _build_tts(avatar: Avatar) -> ElevenLabsTTS:
         settings = avatar.voice_settings
-        self.tts = ElevenLabsTTS(
+        return ElevenLabsTTS(
             voice_id=avatar.engine_config.get("fallback_voice_id")
             if avatar.status == "locked-dormant" else avatar.voice_id,
             stability=settings.get("stability", 0.0),
             speed=settings.get("speed", 1.1),
             model_id=avatar.engine_config.get("model_id", "eleven_v3"),
         )
+
+    def _roster(self, cfg: dict) -> list[dict]:
+        language = cfg.get("default_language", "hi")
+        roster = []
+        for avatar_id in list_avatars(language):
+            a = load_avatar(language, avatar_id)
+            roster.append({
+                "id": a.id, "name": a.name, "description": a.description,
+                "status": a.status,
+                "label": a.raw.get("vybe_label", "VYBE"),
+                "blurb": a.raw.get("card_blurb", a.description),
+                "quote": a.raw.get("card_quote", ""),
+                "image": a.raw.get("card_image"),
+            })
+        return roster
+
+    def set_avatar(self, avatar_id: str) -> bool:
+        """Picker pre-selection. Valid only before the first audio arrives."""
+        if self.t0 is not None:
+            return False
+        try:
+            avatar = load_avatar(self.cfg.get("default_language", "hi"), avatar_id)
+        except Exception:
+            return False
+        with self.lock:
+            self.avatar = avatar
+            self.tts = self._build_tts(avatar)
+            self.manifest["avatar"] = avatar.name
+            self.manifest["avatar_id"] = avatar.id
+        print(f"[pipeline] VYBE selected: {avatar.name}")
+        return True
 
     # -- state the server reads ------------------------------------------
     def state(self) -> dict:
@@ -232,7 +269,6 @@ class LiveSession:
         # workers so a burst of beats does not serialize into drops.
         from concurrent.futures import ThreadPoolExecutor
 
-        director = Director(self.llm, self.avatar)
         words_q: queue.Queue = queue.Queue()
         # Creator plan allows 5 concurrent ElevenLabs requests; 4 workers
         # leave headroom for a fit-retry. (Free plan was 2.)
@@ -270,6 +306,10 @@ class LiveSession:
             while first_chunk is None:
                 first_chunk = self.ingest.queue.get()
             print("[pipeline] tab audio flowing — starting ASR")
+
+        # Built after the picker window closes, so a pre-capture VYBE
+        # selection takes effect.
+        director = Director(self.llm, self.avatar)
 
         def clocked_chunks():
             first = True

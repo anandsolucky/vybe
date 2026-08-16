@@ -5,6 +5,10 @@ description: Delhi ka Gen Z launda — casual bro energy, quick and real; knows 
 language: hi-IN
 status: finalized
 
+vybe_label: "GEN Z VYBE"
+card_blurb: "Gen Z. High energy. Unfiltered. Meme king."
+card_quote: "BHAI! What a shot! That's straight up cinema!"
+
 engine: elevenlabs
 engine_config:
   model_id: eleven_v3
