@@ -158,6 +158,11 @@ async function poll() {
     }
     segCount.textContent = `${state.segments.length} segments`;
     document.getElementById("btnKabir").textContent = state.avatar;
+    if (state.title) {
+      document.getElementById("headerTag").textContent = state.title;
+      document.getElementById("barTitle").textContent = state.title;
+      document.title = `VYBE — ${state.title}`;
+    }
     if (state.usage) {
       document.getElementById("credits").textContent =
         `${state.usage.tts_billed_chars.toLocaleString()} credits this session` +
