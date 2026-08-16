@@ -122,12 +122,58 @@ first.
 (add `--replay poc/segments.json` for free replays) → http://127.0.0.1:8791
 → press VYBE ON.
 
-## Slice 5 — polish and release prep  ☐
+## Slice 5 — the VYBE experience (brand UI)  ☐ IN PLANNING → BUILD
 
-- [ ] Apply branding brief (name, identity) across repo/UI/docs
-- [ ] README: setup, keys, provider matrix, demo GIF
-- [ ] Config hygiene for open source: keyless degradation, credit guards
-- [ ] git init + first public-ready commit (after branding)
+Assets in `brand/assets/`: vybe-logo.png (alpha ✓), vybe-design-system.png,
+4 mockups (mock-player-home, mock-vybe-picker, mock-player-rail,
+mock-states-zero-buffering). brand.md at root is law; every screen passes
+the VYBE Test (§22) before it ships.
+
+### A — Foundation (no dependencies, starts immediately)
+- [ ] `ui/vybe.css`: design tokens from the sheet — colors (§5), gradients
+      (§6), type (Space Grotesk headlines + Inter body, vendored woff2),
+      buttons (§10), badges, dividers. 60/25/10/5 color discipline.
+- [ ] Logo integration (provided PNG; CSS text fallback at small sizes).
+- [ ] Hand-coded SVG icon set matching sheet §16 (icons as AI raster look
+      mushy at 24px — SVG is crisper and saves ~100+ credits).
+
+### B — The four states (single page, zero build system)
+- [ ] S0 zero state: "Let's get the game on VYBE" card, 3 explainer rows,
+      SHARE TAB TO START gradient CTA, privacy line (per mock).
+- [ ] S1 buffering: 15s ring countdown, "PROCESSING YOUR GAME", info
+      tiles, "switch your vibe anytime" line. Runs while S2 is usable.
+- [ ] S2 picker: CHOOSE YOUR VYBE — 4 cards (Original + Kabir GEN Z +
+      Jatin PRO + Naina BOMBAY) with portraits, persona chips, quote
+      bubbles; bottom bar: selection summary + START WATCHING CTA
+      (enables when the buffer is ready — picking your VYBE fills the
+      15s wait).
+- [ ] S3 player: top chrome (logo, LIVE + delay badge), video, overlay
+      control bar (play/pause, display-only LIVE progress strip, volume,
+      fullscreen), quick-switch VYBE rail, bilingual caption, credit
+      meter.
+
+### C — Wiring
+- [ ] POST /avatar: picker selects the session VYBE before capture
+      (pipeline builds director/TTS on first audio, so pre-capture
+      switching is safe). Mid-match: Original ↔ session VYBE stays
+      instant; other cards show "next session".
+- [ ] Chrome policy (user decision): functional = play/pause, switch,
+      volume, fullscreen. Display-only = progress strip, LIVE. Inert
+      placeholders = chat, viewers, settings, How VYBE works. No match
+      title.
+
+### D — Generated art (blocked on OpenArt connector authorization)
+Budget: ≤600 OpenArt credits, GPT image 2. Low quality everywhere except:
+- [ ] 3 persona portraits @ ≤1K (Kabir hoodie/graffiti, Jatin suit/studio,
+      Naina Bombay-neon) — the big spend (~100-150 each).
+- [ ] 1 hero stadium background @ ≤1K for S0/S1 (~100).
+- [ ] Leftover budget: card textures at lowest quality, only if needed.
+Placeholders (gradient waveform tiles) ship first; portraits swap in.
+
+### E — Acceptance
+- [ ] Side-by-side screenshot review vs all 4 mocks.
+- [ ] brand.md VYBE Test on every screen and line of copy.
+- [ ] README + open-source config hygiene (moved from old Slice 5 list).
 
 ## Parked / later phases
 
