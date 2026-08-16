@@ -116,7 +116,7 @@
 <body>
 <div style="position:fixed;inset:0;z-index:-1;background:
   linear-gradient(rgba(10,10,15,.82), rgba(10,10,15,.96)),
-  url('/brand/generated/hero-stadium.png') center/cover no-repeat var(--black)"></div>
+  url('/ui/hero.jpg') center/cover no-repeat var(--black)"></div>
 <header class="app">
   <img class="logo" src="/ui/logo.png" alt="VYBE"
        onerror="this.outerHTML='<div class=fallback-logo>VYBE</div>'">
@@ -354,7 +354,9 @@ $("shareBtn").onclick = async () => {
 
 async function startTabCapture() {
   captureStream = await navigator.mediaDevices.getDisplayMedia({
-    video: { frameRate: 30 },
+    // Cap the capture: native Retina resolution forces a heavyweight
+    // VP8 encode+decode loop on the CPU -> choppy delayed video.
+    video: { frameRate: 30, width: { max: 1280 }, height: { max: 720 } },
     audio: {
       suppressLocalAudioPlayback: true,
       echoCancellation: false, noiseSuppression: false, autoGainControl: false,
@@ -368,7 +370,10 @@ async function startTabCapture() {
   }
   captureStart = performance.now();
 
-  const rec = new MediaRecorder(captureStream, { mimeType: 'video/webm;codecs="vp8,opus"' });
+  const rec = new MediaRecorder(captureStream, {
+    mimeType: 'video/webm;codecs="vp8,opus"',
+    videoBitsPerSecond: 2_500_000, audioBitsPerSecond: 128_000,
+  });
   rec.ondataavailable = (e) => { if (e.data.size) mediaChunks.push(e.data); };
   rec.start(1000);
 
