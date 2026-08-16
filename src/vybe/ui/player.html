@@ -11,7 +11,7 @@
     padding: 16px 26px; border-bottom: none; background: transparent;
     position: relative; z-index: 5;
   }
-  header.app img.logo { height: 34px; }
+  header.app img.logo { height: 40px; display: block; }
   header.app .fallback-logo {
     font-family: var(--font-display); font-weight: 700; font-size: 24px;
     letter-spacing: 3px;
@@ -277,15 +277,13 @@
 <header class="app">
   <img class="logo" src="/ui/logo.png" alt="VYBE"
        onerror="this.outerHTML='<div class=fallback-logo>VYBE</div>'">
-  <div class="tagline">Same game. Your vibe.</div>
   <div class="grow"></div>
   <nav class="top" id="homeNav">
     <a href="#discover">VYBES</a>
     <a href="#how">How it works</a>
   </nav>
-  <span class="badge-live" id="liveBadge">LIVE</span>
-  <span class="badge-delay" id="delayBadge">Live streaming</span>
-  <img src="/ui/icons/user-w.png" alt="" style="width:26px;height:26px;object-fit:contain;opacity:.8">
+  <img src="/ui/icons/user-w.png" alt="Profile" title="Profile"
+       style="width:30px;height:30px;object-fit:contain;opacity:.85">
 </header>
 
 <main class="container">
@@ -450,14 +448,13 @@ async function poll() {
     const res = await fetch("/state");
     state = await res.json();
     clockOffset = state.server_now - Date.now() / 1000;
-    $("delayBadge").textContent = "Live streaming";
     $("segCount").textContent = `${state.segments.length} segments`;
     if (state.usage) {
       $("credits").textContent =
         `${state.usage.tts_billed_chars.toLocaleString()} credits · ${state.usage.tts_chars_30min.toLocaleString()}/30min`;
+      $("credits").style.color = state.usage.credit_alert ? "#ff5d5d" : "";
       if (state.usage.credit_alert) {
-        $("delayBadge").textContent = `⚠ ${state.usage.tts_chars_30min.toLocaleString()} credits/30min`;
-        $("delayBadge").style.color = "#ff5d5d";
+        $("credits").textContent = `⚠ ${state.usage.tts_chars_30min.toLocaleString()} credits/30min — high burn`;
       }
       if (state.usage.asr_ingest_lag > 1.5)
         console.warn(`[vybe] ASR ingest lag ${state.usage.asr_ingest_lag}s`);
