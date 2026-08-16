@@ -134,6 +134,7 @@ let state = null;        // latest /state payload
 let clockOffset = 0;     // server_now - local now
 let ctx, gainOriginal, gainBed, gainVoice;
 let scheduled = new Set();
+let activeNodes = [];    // playing commentary lines, for overlap fades
 let mode = "original";
 const BED_GAIN = 1.2;    // matches config.yaml bed_gain
 
@@ -330,11 +331,25 @@ async function scheduleSegments() {
       const decoded = await ctx.decodeAudioData(buf);
       const node = ctx.createBufferSource();
       node.buffer = decoded;
-      node.connect(gainVoice);
+      const segGain = ctx.createGain();
+      node.connect(segGain).connect(gainVoice);
       const lead = seg.anchor - video.currentTime;   // recompute after decode
-      if (lead >= 0) node.start(ctx.currentTime + lead);
+      const startAt = ctx.currentTime + Math.max(0, lead);
+      // No conjoined voices: a line still playing when the next one
+      // starts gets a 120ms fade-out ending exactly at the new anchor.
+      for (const prev of activeNodes) {
+        const prevEnd = prev.startAt + prev.dur;
+        if (prevEnd > startAt && prev.startAt < startAt) {
+          prev.gain.gain.setValueAtTime(1, Math.max(ctx.currentTime, startAt - 0.12));
+          prev.gain.gain.linearRampToValueAtTime(0, startAt);
+          try { prev.node.stop(startAt + 0.02); } catch (e) {}
+        }
+      }
+      activeNodes.push({ startAt, dur: decoded.duration, node, gain: segGain });
+      while (activeNodes.length > 8) activeNodes.shift();
+      if (lead >= 0) node.start(startAt);
       else node.start(ctx.currentTime, -lead);       // join mid-line
-      console.log(`[vybe] scheduled anchor=${seg.anchor}s lead=${lead.toFixed(2)}s`);
+      console.log(`[vybe] scheduled anchor=${seg.anchor}s lead=${lead.toFixed(2)}s dur=${decoded.duration.toFixed(2)}s`);
       const showIn = Math.max(0, lead) * 1000;
       setTimeout(() => {
         caption.innerHTML = "";

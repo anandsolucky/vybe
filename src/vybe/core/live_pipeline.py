@@ -161,6 +161,9 @@ class LiveSession:
                 self.manifest["drops"] += 1
             print(f"[pipeline] PRE-DROP anchor={seg.anchor:.2f}s (no time to render)")
             return
+        # Tag guard: a line with no delivery tag renders flat. Baseline it.
+        if "[" not in seg.text:
+            seg.text = "[excited] " + seg.text
         mp3 = self.tts.render(seg.text)
         samples = audio.mp3_to_mono(mp3, self.rate)
         duration = len(samples) / self.rate
@@ -192,9 +195,9 @@ class LiveSession:
 
         director = Director(self.llm, self.avatar)
         words_q: queue.Queue = queue.Queue()
-        # ElevenLabs Free plan allows 2 concurrent requests; a third worker
-        # earns HTTP 429 and a dropped segment (seen live 2026-08-16).
-        tts_pool = ThreadPoolExecutor(max_workers=2)
+        # Creator plan allows 5 concurrent ElevenLabs requests; 4 workers
+        # leave headroom for a fit-retry. (Free plan was 2.)
+        tts_pool = ThreadPoolExecutor(max_workers=4)
 
         if self.input_spec == "browser":
             # Tab mode: the player captures a Chrome tab and streams PCM to
