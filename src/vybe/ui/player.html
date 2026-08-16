@@ -79,7 +79,7 @@
 <body>
 <header>
   <div class="logo">VYBE</div>
-  <div class="tag">Same game. Your vibe.</div>
+  <div class="tag" id="headerTag">Same game. Your vibe.</div>
   <div class="live" id="liveBadge">15s behind live</div>
 </header>
 <main>
@@ -236,9 +236,12 @@ async function startTabCapture() {
 
   // The shared tab's title rides on the video track label in Chrome.
   const rawLabel = captureStream.getVideoTracks()[0]?.label || "";
-  if (rawLabel && !/^(screen|window|web-contents|monitor)/i.test(rawLabel)) {
+  console.log("[vybe] capture track label:", JSON.stringify(rawLabel));
+  if (rawLabel && !/^(screen|window|web-contents|monitor|tab:)/i.test(rawLabel)) {
     const title = rawLabel.replace(/ - (YouTube|Google Chrome).*$/i, "").trim();
     document.getElementById("barTitle").textContent = title;
+    document.getElementById("headerTag").textContent = title;   // visible immediately
+    countdown.textContent = `Buffering: ${title}`;
     document.title = `VYBE — ${title}`;
   }
 
