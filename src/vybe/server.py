@@ -8,7 +8,7 @@ from pathlib import Path
 UI_DIR = Path(__file__).resolve().parent / "ui"
 
 
-def make_handler(session, source_path: str, session_dir: Path):
+def make_handler(holder, source_path: str, session_dir: Path):
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):  # keep the console for pipeline logs
             pass
@@ -34,21 +34,24 @@ def make_handler(session, source_path: str, session_dir: Path):
             self._send(200, path.read_bytes(), ctype)
 
         def do_POST(self) -> None:
-            if self.path == "/language":
+            if self.path == "/reset":
+                ok = bool(holder.get("reset")) and holder["reset"]()
+                self._send(200 if ok else 409, b"ok" if ok else b"unsupported", "text/plain")
+            elif self.path == "/language":
                 length = int(self.headers.get("Content-Length", 0))
                 code = self.rfile.read(length).decode("utf-8", "replace").strip()
-                ok = session.switch_language(code)
+                ok = holder["session"].switch_language(code)
                 self._send(200 if ok else 409, b"ok" if ok else b"rejected", "text/plain")
             elif self.path == "/switch":
                 length = int(self.headers.get("Content-Length", 0))
                 avatar_id = self.rfile.read(length).decode("utf-8", "replace").strip()
-                ok = session.switch_lane(avatar_id)
+                ok = holder["session"].switch_lane(avatar_id)
                 self._send(200 if ok else 409, b"ok" if ok else b"rejected", "text/plain")
             elif self.path == "/avatars":
                 length = int(self.headers.get("Content-Length", 0))
                 body = self.rfile.read(length).decode("utf-8", "replace").strip()
                 ids = [x.strip() for x in body.split(",") if x.strip()]
-                ok = session.set_avatars(ids)
+                ok = holder["session"].set_avatars(ids)
                 self._send(200 if ok else 409, b"ok" if ok else b"rejected", "text/plain")
             else:
                 self._send(404, b"not found", "text/plain")
@@ -66,12 +69,12 @@ def make_handler(session, source_path: str, session_dir: Path):
                 self._send_static(UI_DIR.parents[2] / "brand" / "assets", self.path[7:])
             elif self.path == "/state":
                 import json
-                self._send(200, json.dumps(session.state()).encode(),
+                self._send(200, json.dumps(holder["session"].state()).encode(),
                            "application/json")
             elif self.path == "/media/source":
                 self._serve_file(Path(source_path))
             elif self.path.startswith("/media/"):
-                self._serve_file(session_dir / Path(self.path).name)
+                self._serve_file(holder["session"].dir / Path(self.path).name)
             else:
                 self._send(404, b"not found", "text/plain")
 
@@ -109,8 +112,8 @@ def make_handler(session, source_path: str, session_dir: Path):
     return Handler
 
 
-def start(session, source_path: str, session_dir: Path, port: int = 8791):
-    handler = make_handler(session, source_path, session_dir)
+def start(holder, source_path: str, session_dir: Path, port: int = 8791):
+    handler = make_handler(holder, source_path, session_dir)
     server = ThreadingHTTPServer(("127.0.0.1", port), handler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()

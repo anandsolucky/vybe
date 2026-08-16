@@ -189,6 +189,10 @@ class LiveSession:
             self.manifest["active_vybes"] = [lane["id"]]
         print(f"[pipeline] VYBE on the mic: {lane['id']}")
 
+    def abandon(self) -> None:
+        """Retire this session (reset flow): stop waiting for capture."""
+        self._abandoned = True
+
     # -- state the server reads ------------------------------------------
     def state(self) -> dict:
         with self.lock:
@@ -393,7 +397,13 @@ class LiveSession:
         if self.input_spec == "browser":
             print("[pipeline] waiting for tab capture to start …")
             while first_chunk is None:
-                first_chunk = self.ingest.queue.get()
+                if getattr(self, "_abandoned", False):
+                    print("[pipeline] session abandoned before capture")
+                    return
+                try:
+                    first_chunk = self.ingest.queue.get(timeout=1)
+                except queue.Empty:
+                    continue
             print("[pipeline] tab audio flowing — starting ASR")
 
         # Built after the picker window closes, so a pre-capture VYBE
@@ -465,7 +475,12 @@ class LiveSession:
 
     def run(self, llm=None) -> None:
         self.llm = llm
-        self.t0 = time.time()
+        # t0 means "audio started". Live modes set it on the first real
+        # chunk; only replay needs a clock at thread start. Setting it
+        # here for live modes made pre-start choices 409 ("already
+        # started") before any capture existed.
+        if self.replay is not None:
+            self.t0 = time.time()
         with self.lock:
             self.manifest["started"] = True
         try:

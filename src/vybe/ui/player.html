@@ -8,7 +8,8 @@
 <style>
   header.app {
     display: flex; align-items: center; gap: 16px;
-    padding: 14px 22px; border-bottom: 1px solid var(--line);
+    padding: 16px 26px; border-bottom: none; background: transparent;
+    position: relative; z-index: 5;
   }
   header.app img.logo { height: 34px; }
   header.app .fallback-logo {
@@ -180,7 +181,7 @@
   body { overflow-x: hidden; }             /* the breakout must never scroll sideways */
   #sHome .hero-wrap {
     position: relative; min-height: 82vh; display: flex; align-items: center;
-    overflow: hidden;
+    overflow: hidden; margin-top: -74px; padding-top: 74px;
   }
   #sHome .hero-inner { padding-left: max(44px, 6vw) !important; }
   /* hero is full-bleed; everything after it returns to a column */
@@ -467,8 +468,15 @@ async function poll() {
   setTimeout(poll, 1000);
 }
 let bootDone = false;
-function boot() {
+async function boot() {
   bootDone = true;
+  if (state.t0) {
+    // A previous session already ran in this server — start fresh so the
+    // homepage choices really are pre-configs.
+    await fetch("/reset", { method: "POST" });
+    const res = await fetch("/state");
+    state = await res.json();
+  }
   renderPicker();
   renderAllChoosers();
   renderHome();

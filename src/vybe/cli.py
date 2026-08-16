@@ -202,23 +202,38 @@ def play(args: list[str]) -> int:
         ingest = TabIngest(8790)
         ingest.start()
 
-    session = LiveSession(input_path, avatar, None, cfg, session_dir,
-                          replay=replay, ingest=ingest)
-    srv.start(session, input_path, session_dir, port)
-    mode = "replay" if replay else ("tab" if ingest else "live")
-    print(f"VYBE player: http://127.0.0.1:{port}  (mode: {mode}, avatar {avatar.name})")
-    if ingest:
-        print("open the player, press CAPTURE TAB, pick the tab playing the "
-              "match, tick 'Also share tab audio'")
-
     llm = None
     if replay is None:
         from .providers.llm_openai import OpenAICompatibleLLM
         llm = OpenAICompatibleLLM()
 
     import threading
-    pipeline = threading.Thread(target=session.run, args=(llm,), daemon=True)
-    pipeline.start()
+
+    def make_session():
+        sdir = Path(tempfile.mkdtemp(prefix="vybe_session_"))
+        sess = LiveSession(input_path, avatar, None, cfg, sdir,
+                           replay=replay, ingest=ingest)
+        threading.Thread(target=sess.run, args=(llm,), daemon=True).start()
+        return sess
+
+    holder = {"session": None, "reset": None}
+
+    def reset():
+        old = holder["session"]
+        if old:
+            old.abandon()
+        holder["session"] = make_session()
+        print("[server] fresh session ready")
+        return True
+
+    holder["session"] = make_session()
+    holder["reset"] = reset
+    srv.start(holder, input_path, session_dir, port)
+    mode = "replay" if replay else ("tab" if ingest else "live")
+    print(f"VYBE player: http://127.0.0.1:{port}  (mode: {mode}, avatar {avatar.name})")
+    if ingest:
+        print("open the player, press CAPTURE TAB, pick the tab playing the "
+              "match, tick 'Also share tab audio'")
     try:
         while True:
             timelib.sleep(1)
