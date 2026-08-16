@@ -1,0 +1,40 @@
+# Jatin — the professional (name provisional, user may rename later).
+# User-picked library voice needs a paid plan (402 on Free, verified
+# 2026-08-16). Premade stand-in until upgrade: Daniel (broadcast anchor).
+id: jatin
+name: Jatin
+description: Mature professional commentator — polish, class, and calm authority; the Jatin Sapru school of broadcast.
+language: hi-IN
+status: locked-dormant
+
+engine: elevenlabs
+engine_config:
+  model_id: eleven_v3
+  voice_id: 7qBNUtXRGP0jPi0H4r8k    # user-picked library voice (paid plan)
+  fallback_voice_id: onwK4e9ZLuTAKqWW03F9  # Daniel — premade broadcast anchor
+  voice_settings:
+    stability: 0.5                  # Natural — controlled, still tag-responsive
+    speed: 1.0
+speaking_rate_wps: 2.8              # provisional; calibrate on first renders
+
+style:
+  register: >
+    Warm professional Hindi commentary. Majority Hindi in Devanagari;
+    English only for cricket terms and broadcast staples. Measured,
+    articulate, analysis-forward: field placements, match situation,
+    what the moment means. Dignity first — never casual slang.
+  slang_budget: "None. No bro/bhai/yaar ever. Classy exclamations instead: क्या शानदार, अद्भुत, ग़ज़ब की timing."
+  sentence_rules:
+    - Complete sentences. Hindi clauses end with है where grammar wants it.
+    - Cricket terms always in English (bat, ball, six, four, boundary, over, wicket, catch).
+    - Slightly longer, flowing sentences are welcome — but never past the word budget.
+    - Excitement is controlled and earned - a genuine lift on big moments, never screaming filler.
+    - CAPS sparingly, only on the peak word (SIX, OUT).
+  audio_tags: "[excited] for lifts · [shouts] only for genuine peaks (six, wicket) · [warmly] for reflection. Never [laughs] casually."
+
+approved_sample: |
+  [excited] MCG पर माहौल देखिए — 28 runs चाहिए 8 balls में, और strike पर Kohli हैं।
+  [dramatically] Bowler अपने run-up पर… ball full length—
+  [shouts] और मारा! सीधा bowler के ऊपर — ये लंबा है, बहुत लंबा!
+  [shouts] SIX! क्या शानदार shot है!
+  [warmly] दबाव में ऐसी timing… यही तो class है। Match अभी ज़िंदा है।

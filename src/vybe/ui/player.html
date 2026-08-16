@@ -142,6 +142,7 @@ async function poll() {
     clockOffset = state.server_now - Date.now() / 1000;
     liveBadge.textContent = `${state.delay}s behind live`;
     segCount.textContent = `${state.segments.length} segments`;
+    document.getElementById("btnKabir").textContent = state.avatar;
     if (state.video_type === "tab" && !captureStream) {
       startBtn.textContent = "CAPTURE TAB";
       countdown.textContent = "Pick the tab playing the match — share it WITH audio";
@@ -297,7 +298,7 @@ function setMode(next) {
   } else {
     target(gainOriginal, 1); target(gainBed, 0); target(gainVoice, 0);
   }
-  modeLabel.textContent = "mode: " + (next === "vybe" ? "Kabir" : "original");
+  modeLabel.textContent = "mode: " + (next === "vybe" ? state.avatar : "original");
   document.getElementById("btnOriginal").classList.toggle("active", next === "original");
   document.getElementById("btnKabir").classList.toggle("active", next === "vybe");
 }
