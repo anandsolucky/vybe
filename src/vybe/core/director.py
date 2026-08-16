@@ -58,7 +58,13 @@ def beats_from_words(words: list[Word], gap: float = BEAT_GAP,
 CRICKET_PRESET = """Sport: cricket. You know the game cold: field positions,
 shot names, match situations, the weight of a wicket or a six. Read the
 match state from the source words (score, overs, who is on strike) and use
-it naturally. Never invent facts the transcript does not support."""
+it naturally. Never invent facts the transcript does not support.
+
+CALL OUTCOMES BY NAME. When the ball clears the rope it is SIX — call it,
+stretched: "SIIIIX!" To the fence it is FOUR. A wicket is OUT/gone. Naming
+the event is mandatory; "क्या hit है" without the call is a miss.
+NEVER invent an outcome the transcript has not stated. If the beat is
+anticipation ("looking for power"), speak anticipation — no result."""
 
 DELIVERY_LAYER = """THE DELIVERY LAYER — identical for every commentator.
 Your persona only changes how often, how strongly, and in what sequence
@@ -155,6 +161,10 @@ Hard constraints:
 - COMPLETE SENTENCES: when trimming for budget, cut adjectives and
   fillers — NEVER the sentence-final verb. "क्या शानदार catch है" stays
   whole; "क्या शानदार catch" is broken Hindi and forbidden.
+- ENGLISH IDIOMS STAY WHOLE: "on fire है", "down the ground मारा",
+  "in the air है". Never half-translate them — "fire पर है" and
+  "go down the ground मारा" are broken in both languages. Either the
+  full English phrase inside the Hindi sentence, or full Hindi.
 - Causality: react only to what the transcript shows has already happened.
   Never predict or reveal anything beyond it.
 - ASR noise: names may be mangled (Kohli can appear as "Golly"/"goalie").
@@ -215,6 +225,10 @@ class Director:
 
     SLANG = ("bro", "bhai", "yaar")
     CALM_TAGS = ("warmly", "slow", "curious", "softly")
+    # Streak-broken tags: the same non-peak opener twice in a row sounds
+    # monotone ([warmly] x16, [chuckles] x3 seen live). Peak-tag streaks
+    # ([shouts]) are fine.
+    STREAK_TAGS = CALM_TAGS + ("chuckles", "laughs", "giggles", "sighs")
     PEAK_WORDS = ("six", "four", "wicket", "out", "caught", "bowled",
                   "gone", "stumped", "runout", "run out", "hundred", "century")
 
@@ -242,7 +256,8 @@ class Director:
         if not prev_match:
             return text
         prev = prev_match.group(1).split(",")[0].strip().lower()
-        if current in self.CALM_TAGS and prev in self.CALM_TAGS:
+        if (current in self.STREAK_TAGS and prev == current) or (
+                current in self.CALM_TAGS and prev in self.CALM_TAGS):
             return re.sub(r"^\s*\[[^\]]+\]", "[excited]", text, count=1)
         return text
 
@@ -273,12 +288,12 @@ class Director:
             text = reply["text"].strip()
 
         anchor = beats[index].start
-        text = enforce_delivery(text)
+        text = repair_names(enforce_delivery(text))
         text = self._break_calm_streak(text)
         text = self._guarantee_peak(beats[index].text, text)
         self.previous.append((anchor, text))
         return DeliverySegment(text=text, anchor=anchor, slot_end=anchor + slot,
-                               english=reply.get("english", "").strip())
+                               english=repair_names(reply.get("english", "").strip()))
 
     def direct(self, words: list[Word]) -> list[DeliverySegment]:
         """Offline mode: full transcript in, all segments out."""
@@ -294,6 +309,20 @@ class Director:
 def spoken_words(text: str) -> int:
     """Word count excluding audio tags."""
     return len(re.sub(r"\[[^\]]+\]", " ", text).split())
+
+
+# Known ASR manglings of player names. Deterministic repair beats prompt
+# rules — the LLM copies mangled tokens under pressure (seen repeatedly).
+NAME_REPAIRS = {
+    "golly": "Kohli", "goalie": "Kohli", "coley": "Kohli",
+    "weatherall": "Weatherald",
+}
+
+
+def repair_names(text: str) -> str:
+    for wrong, right in NAME_REPAIRS.items():
+        text = re.sub(rf"\b{wrong}\b", right, text, flags=re.IGNORECASE)
+    return text
 
 
 def enforce_delivery(text: str) -> str:
