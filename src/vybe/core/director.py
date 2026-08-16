@@ -21,6 +21,8 @@ LANGUAGES = {
     "gu": ("Gujarati", "ગુજરાતી (Gujarati script)"),
     "ta": ("Tamil", "தமிழ் (Tamil script)"),
     "mr": ("Marathi", "मराठी (Devanagari script)"),
+    "ja": ("Japanese", "日本語 — natural spoken Japanese in kanji and kana"),
+    "es": ("Spanish", "natural Latin-American Spanish, Latin script"),
 }
 
 BEAT_GAP = 0.8       # silence that separates two beats (seconds)
