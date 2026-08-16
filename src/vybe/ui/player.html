@@ -185,10 +185,10 @@
     overflow: hidden; margin-top: -74px; padding-top: 74px;
   }
   #sHome .hero-inner { padding-left: max(44px, 6vw) !important; }
-  /* hero is full-bleed; everything after it returns to a column */
-  #sHome .combo { width: min(1180px, 92vw); margin: -70px auto 0; }
-  #sHome > .container { max-width: 1180px; margin: 0 auto; padding: 0 20px; }
-  #sHome .switch-strip { width: min(1180px, 92vw); margin-left: auto; margin-right: auto; }
+  /* hero is full-bleed; content below shares the hero text's symmetry line */
+  #sHome .combo { margin: -70px max(44px, 6vw) 0; }
+  #sHome > .container { max-width: none; margin: 0; padding: 0 max(44px, 6vw); }
+  #sHome .switch-strip { margin-left: max(44px, 6vw); margin-right: max(44px, 6vw); }
   #sHome .hero-wrap::before {
     content: ""; position: absolute; inset: 0;
     background: url('/ui/hero-virat.jpg') center/cover no-repeat;
