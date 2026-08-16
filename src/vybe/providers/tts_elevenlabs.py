@@ -29,11 +29,12 @@ class ElevenLabsTTS:
         self.cached_chars = 0   # cache hits — free
         self.billed_events: list[tuple[float, int]] = []  # (timestamp, chars)
 
-    def render(self, text: str, speed: float | None = None) -> bytes:
+    def render(self, text: str, speed: float | None = None,
+               previous_text: str | None = None) -> bytes:
         # Cache on the full voice recipe: identical requests never bill twice.
         key = hashlib.sha256(
             f"{self.voice_id}|{self.model_id}|{self.stability}|"
-            f"{speed or self.base_speed}|{text}".encode()
+            f"{speed or self.base_speed}|{previous_text or ''}|{text}".encode()
         ).hexdigest()
         cache_path = CACHE_DIR / f"{key}.mp3"
         if cache_path.exists():
@@ -53,6 +54,10 @@ class ElevenLabsTTS:
                 "speed": speed or self.base_speed,
             },
         }
+        # Unbilled prosody context: v3 reads emotion far better with the
+        # preceding lines in view (our lines are ~65 chars; v3 wants 250+).
+        if previous_text:
+            payload["previous_text"] = previous_text[-500:]
         req = urllib.request.Request(
             url,
             data=json.dumps(payload).encode(),

@@ -80,16 +80,22 @@ loudness, and pace changes.
      "[shouts] CAUGHT! क्या catch है — [laughs] यक़ीन नहीं होता!"
    Combine tags for layered color when it fits: [shouts, laughing],
    [sighs, disappointed], [gasps] … [whispers] nahi…
-3. STRETCH WORDS when the moment hangs in the air. Elongate in the text
+3. THE INTENSITY LADDER goes above excited — use the whole range:
+   [excited] < [shouts] < [shouts, ecstatic] < [screaming].
+   A six, a wicket, a direct-hit runout = [shouts] minimum, and the
+   biggest moments take the top rungs. Calm tags ([warmly], [slow]) are
+   for reflection ONLY — never two calm-tagged lines in a row.
+4. STRETCH WORDS when the moment hangs in the air. Elongate in the text
    itself: "ये गई, गईईईई…", "ये loooong है!", "SIIIIX!", "goooone!".
    Stretch trajectory and suspense words only — one or two stretches per
-   big moment, never every line.
-4. PEAK WORDS explode: CAPS + exclamation, and the English cricket word
+   big moment, never every line. A peak line combines all three:
+   stretch + CAPS + [shouts]: "[shouts] ये लंबाआआआ… SIIIIX है!"
+5. PEAK WORDS explode: CAPS + exclamation, and the English cricket word
    carries the shout (SIX! FOUR! OUT! CAUGHT!).
-5. REAL HUMAN NOISES belong in commentary: [laughs] at absurdity,
+6. REAL HUMAN NOISES belong in commentary: [laughs] at absurdity,
    [chuckles] at irony, [gasps] at a close call, [sighs] at a letdown.
    Commentators are humans reacting, not scripts being read.
-6. If a line reads flat on the page, it will sound flat. Rewrite it hot
+7. If a line reads flat on the page, it will sound flat. Rewrite it hot
    before you return it."""
 
 OUTPUT_RULES = """Reply with STRICT JSON only, no code fences:
@@ -136,6 +142,9 @@ Dashes cut, exclamations lift.
 Hard constraints:
 - WORD BUDGET: each request states a maximum word count. Never exceed it.
   Shorter is always fine. Audio tags do not count as words.
+- COMPLETE SENTENCES: when trimming for budget, cut adjectives and
+  fillers — NEVER the sentence-final verb. "क्या शानदार catch है" stays
+  whole; "क्या शानदार catch" is broken Hindi and forbidden.
 - Causality: react only to what the transcript shows has already happened.
   Never predict or reveal anything beyond it.
 - ASR noise: names may be mangled (Kohli can appear as "Golly"/"goalie").
@@ -195,6 +204,22 @@ class Director:
         return min(beats[index].end - anchor + TAIL_SLOT, MAX_SLOT)
 
     SLANG = ("bro", "bhai", "yaar")
+    CALM_TAGS = ("warmly", "slow", "curious", "softly")
+
+    def _break_calm_streak(self, text: str) -> str:
+        """Two calm-tagged lines in a row make a lullaby. Swap the second
+        one's opening tag to [excited] (seen live: [warmly] on 16/25 lines)."""
+        match = re.match(r"\s*\[([^\]]+)\]", text)
+        if not match or not self.previous:
+            return text
+        current = match.group(1).split(",")[0].strip().lower()
+        prev_match = re.match(r"\s*\[([^\]]+)\]", self.previous[-1][1])
+        if not prev_match:
+            return text
+        prev = prev_match.group(1).split(",")[0].strip().lower()
+        if current in self.CALM_TAGS and prev in self.CALM_TAGS:
+            return re.sub(r"^\s*\[[^\]]+\]", "[excited]", text, count=1)
+        return text
 
     def segment_for(self, beats: list[Beat], index: int) -> DeliverySegment | None:
         slot = self.slot_for(beats, index)
@@ -224,6 +249,7 @@ class Director:
 
         anchor = beats[index].start
         text = enforce_delivery(text)
+        text = self._break_calm_streak(text)
         self.previous.append((anchor, text))
         return DeliverySegment(text=text, anchor=anchor, slot_end=anchor + slot,
                                english=reply.get("english", "").strip())

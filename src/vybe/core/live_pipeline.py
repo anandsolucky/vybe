@@ -50,6 +50,10 @@ class LiveSession:
         self.rate = cfg.get("sample_rate", 44100)
         self.t0: float | None = None
         self.asr_seconds = 0.0
+        self.fit_retries = 0        # double renders (billed twice)
+        self.tts_wasted = 0         # chars rendered then deadline-dropped
+        self._cps_samples: list[tuple[int, float]] = []
+        self._prev_text = ""        # prosody context for the next render
         self.lock = threading.Lock()
         self.manifest = {
             "video": "/media/source", "video_type": "file",
@@ -84,6 +88,8 @@ class LiveSession:
             "tts_usd_est": round(self.tts.billed_chars / 1000 * ELEVEN_USD_PER_1K_CHARS, 3),
             "tts_chars_30min": self.tts.billed_last(1800),
             "credit_alert": self.tts.billed_last(1800) > CREDIT_ALERT_30MIN,
+            "tts_fit_retries": self.fit_retries,
+            "tts_wasted_chars": self.tts_wasted,
         }
         if llm:
             report.update({
@@ -113,6 +119,7 @@ class LiveSession:
         if lead < DEADLINE_MARGIN:
             with self.lock:
                 self.manifest["drops"] += 1
+                self.tts_wasted += len(seg.text)
             print(f"[pipeline] DROP anchor={seg.anchor:.2f}s (late by {-lead:.2f}s)")
             return
         name = f"seg_{int(seg.anchor * 100):07d}.mp3"
@@ -123,6 +130,8 @@ class LiveSession:
                 "duration": round(duration, 2), "url": f"/media/{name}",
                 "text": seg.text, "english": seg.english, "lead": round(lead, 1),
             })
+        with self.lock:
+            self._prev_text = (self._prev_text + " " + seg.text)[-500:]
         print(f"[pipeline] published anchor={seg.anchor:6.2f}s lead={lead:4.1f}s  {seg.text[:60]}")
         burn = self.tts.billed_last(1800)
         if burn > CREDIT_ALERT_30MIN and not getattr(self, "_credit_alerted", False):
@@ -164,14 +173,40 @@ class LiveSession:
         # Tag guard: a line with no delivery tag renders flat. Baseline it.
         if "[" not in seg.text:
             seg.text = "[excited] " + seg.text
-        mp3 = self.tts.render(seg.text)
+
+        # Calibrated speed pick: estimate duration from observed
+        # chars-per-second and choose the speed UP FRONT — one render
+        # instead of render-measure-rerender (double billing).
+        base = self.tts.base_speed
+        estimate = len(seg.text) / self._cps()
+        speed = base
+        if seg.slot > 0 and estimate > seg.slot:
+            speed = min(1.2, round(base * estimate / seg.slot, 2))
+        with self.lock:
+            prev = self._prev_text
+
+        mp3 = self.tts.render(seg.text, speed=speed, previous_text=prev)
         samples = audio.mp3_to_mono(mp3, self.rate)
         duration = len(samples) / self.rate
-        if duration > seg.slot:
-            mp3 = self.tts.render(seg.text, speed=1.2)
+        self._cps_samples.append((len(seg.text), duration * speed / base))
+
+        # Overlap fade in the player absorbs small overshoots; re-render
+        # only when the line badly outruns its slot and speed has room.
+        if duration > seg.slot * 1.15 and speed < 1.2:
+            self.fit_retries += 1
+            mp3 = self.tts.render(seg.text, speed=1.2, previous_text=prev)
             samples = audio.mp3_to_mono(mp3, self.rate)
             duration = len(samples) / self.rate
         self._publish(seg, mp3, duration)
+
+    def _cps(self) -> float:
+        """Observed characters per second at base speed (default 14)."""
+        recent = self._cps_samples[-20:]
+        if not recent:
+            return 14.0
+        chars = sum(c for c, _ in recent)
+        seconds = sum(d for _, d in recent)
+        return max(8.0, chars / max(seconds, 0.1))
 
     # -- replay mode ------------------------------------------------------
     def _run_replay(self) -> None:
