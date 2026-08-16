@@ -59,10 +59,19 @@ class LiveSession:
             "video": "/media/source", "video_type": "file",
             "delay": self.delay, "sport": "cricket",
             "avatar": avatar.name, "avatar_id": avatar.id,
+            "active_vybes": [avatar.id],
             "avatars": self._roster(cfg), "started": False,
             "segments": [], "drops": 0,
         }
-        self.tts = self._build_tts(avatar)
+        self.lanes = [self._make_lane(avatar)]
+        self.active_idx = 0
+        self._pending_id: str | None = None
+        self.tts = self.lanes[0]["tts"]  # primary lane alias (replay, usage)
+
+    def _make_lane(self, avatar: Avatar) -> dict:
+        return {"id": avatar.id, "avatar": avatar,
+                "tts": self._build_tts(avatar),
+                "prev_text": "", "cps_samples": [], "director": None}
 
     @staticmethod
     def _build_tts(avatar: Avatar) -> ElevenLabsTTS:
@@ -87,24 +96,69 @@ class LiveSession:
                 "blurb": a.raw.get("card_blurb", a.description),
                 "quote": a.raw.get("card_quote", ""),
                 "image": a.raw.get("card_image"),
+                "locked": bool(a.raw.get("coming_soon")),
             })
         return roster
 
-    def set_avatar(self, avatar_id: str) -> bool:
-        """Picker pre-selection. Valid only before the first audio arrives."""
-        if self.t0 is not None:
+    def set_avatars(self, avatar_ids: list[str]) -> bool:
+        """Picker pre-selection of the STARTING lane. Pre-audio only."""
+        if self.t0 is not None or not avatar_ids:
             return False
         try:
-            avatar = load_avatar(self.cfg.get("default_language", "hi"), avatar_id)
+            avatar = load_avatar(self.cfg.get("default_language", "hi"), avatar_ids[0])
+            if avatar.raw.get("coming_soon"):
+                return False
         except Exception:
             return False
         with self.lock:
+            self.lanes = [self._make_lane(avatar)]
+            self.active_idx = 0
             self.avatar = avatar
-            self.tts = self._build_tts(avatar)
+            self.tts = self.lanes[0]["tts"]
             self.manifest["avatar"] = avatar.name
             self.manifest["avatar_id"] = avatar.id
-        print(f"[pipeline] VYBE selected: {avatar.name}")
+            self.manifest["active_vybes"] = [avatar.id]
+        print(f"[pipeline] starting VYBE: {avatar.name}")
         return True
+
+    def switch_lane(self, avatar_id: str) -> bool:
+        """On-demand mid-match switch. The new VYBE takes the mic from the
+        next beat at the live edge; the viewer hears it one buffer-delay
+        later (the 'warming up' clock in the player)."""
+        try:
+            avatar = load_avatar(self.cfg.get("default_language", "hi"), avatar_id)
+            if avatar.raw.get("coming_soon"):
+                return False
+        except Exception:
+            return False
+        with self.lock:
+            if self.lanes[self.active_idx]["id"] == avatar_id:
+                self._pending_id = None
+                self.manifest.pop("queued_vybe", None)
+                return True
+            self._pending_id = avatar_id
+            self.manifest["queued_vybe"] = avatar_id
+        print(f"[pipeline] VYBE queued: {avatar_id}")
+        return True
+
+    def _activate_pending(self) -> None:
+        pending = self._pending_id
+        if not pending:
+            return
+        lane = next((l for l in self.lanes if l["id"] == pending), None)
+        if lane is None:
+            lane = self._make_lane(load_avatar(self.cfg.get("default_language", "hi"), pending))
+            self.lanes.append(lane)
+        if lane["director"] is None and getattr(self, "llm", None):
+            lane["director"] = Director(self.llm, lane["avatar"])
+        with self.lock:
+            self.active_idx = self.lanes.index(lane)
+            self._pending_id = None
+            self.manifest.pop("queued_vybe", None)
+            self.manifest["avatar"] = lane["avatar"].name
+            self.manifest["avatar_id"] = lane["id"]
+            self.manifest["active_vybes"] = [lane["id"]]
+        print(f"[pipeline] VYBE on the mic: {lane['id']}")
 
     # -- state the server reads ------------------------------------------
     def state(self) -> dict:
@@ -120,11 +174,11 @@ class LiveSession:
         report = {
             "asr_minutes": round(self.asr_seconds / 60, 2),
             "asr_usd": round(self.asr_seconds / 60 * DEEPGRAM_USD_PER_MIN, 3),
-            "tts_billed_chars": self.tts.billed_chars,
-            "tts_cached_chars": self.tts.cached_chars,
-            "tts_usd_est": round(self.tts.billed_chars / 1000 * ELEVEN_USD_PER_1K_CHARS, 3),
-            "tts_chars_30min": self.tts.billed_last(1800),
-            "credit_alert": self.tts.billed_last(1800) > CREDIT_ALERT_30MIN,
+            "tts_billed_chars": sum(l["tts"].billed_chars for l in self.lanes),
+            "tts_cached_chars": sum(l["tts"].cached_chars for l in self.lanes),
+            "tts_usd_est": round(sum(l["tts"].billed_chars for l in self.lanes) / 1000 * ELEVEN_USD_PER_1K_CHARS, 3),
+            "tts_chars_30min": sum(l["tts"].billed_last(1800) for l in self.lanes),
+            "credit_alert": sum(l["tts"].billed_last(1800) for l in self.lanes) > CREDIT_ALERT_30MIN,
             "tts_fit_retries": self.fit_retries,
             "tts_wasted_chars": self.tts_wasted,
             # >1.5s means audio reaches ASR slower than real time: PCM
@@ -153,7 +207,9 @@ class LiveSession:
                  f" ≈ ${u['llm_usd_est']}" if "llm_calls" in u else ""))
 
     # -- publishing -------------------------------------------------------
-    def _publish(self, seg: DeliverySegment, mp3_bytes: bytes, duration: float) -> None:
+    def _publish(self, seg: DeliverySegment, mp3_bytes: bytes, duration: float,
+                 lane: dict | None = None) -> None:
+        lane = lane or self.lanes[0]
         ready_at = time.time()
         deadline = self.t0 + seg.anchor + self.delay
         lead = deadline - ready_at
@@ -163,17 +219,18 @@ class LiveSession:
                 self.tts_wasted += len(seg.text)
             print(f"[pipeline] DROP anchor={seg.anchor:.2f}s (late by {-lead:.2f}s)")
             return
-        name = f"seg_{int(seg.anchor * 100):07d}.mp3"
+        name = f"seg_{lane['id']}_{int(seg.anchor * 100):07d}.mp3"
         (self.dir / name).write_bytes(mp3_bytes)
         with self.lock:
             self.manifest["segments"].append({
                 "anchor": seg.anchor, "slot_end": seg.slot_end,
                 "duration": round(duration, 2), "url": f"/media/{name}",
                 "text": seg.text, "english": seg.english, "lead": round(lead, 1),
+                "vybe": lane["id"],
             })
         with self.lock:
-            self._prev_text = (self._prev_text + " " + seg.text)[-500:]
-        print(f"[pipeline] published anchor={seg.anchor:6.2f}s lead={lead:4.1f}s  {seg.text[:60]}")
+            lane["prev_text"] = (lane["prev_text"] + " " + seg.text)[-500:]
+        print(f"[pipeline] published [{lane['id']}] anchor={seg.anchor:6.2f}s lead={lead:4.1f}s  {seg.text[:50]}")
         burn = self.tts.billed_last(1800)
         if burn > CREDIT_ALERT_30MIN and not getattr(self, "_credit_alerted", False):
             self._credit_alerted = True
@@ -182,14 +239,15 @@ class LiveSession:
 
     TTS_ESTIMATE = 3.5  # seconds a render usually takes (measured 3.3)
 
-    def _render_and_publish(self, seg: DeliverySegment) -> None:
+    def _render_and_publish(self, seg: DeliverySegment, lane: dict | None = None) -> None:
         # Runs in a worker thread; never let an error vanish silently.
+        lane = lane or self.lanes[0]
         if getattr(self, "tts_exhausted", False):
             with self.lock:
                 self.manifest["drops"] += 1
             return
         try:
-            self._render_and_publish_inner(seg)
+            self._render_and_publish_inner(seg, lane)
         except Exception as err:
             with self.lock:
                 self.manifest["drops"] += 1
@@ -203,7 +261,7 @@ class LiveSession:
             else:
                 print(f"[pipeline] ERROR anchor={seg.anchor:.2f}s: {err}")
 
-    def _render_and_publish_inner(self, seg: DeliverySegment) -> None:
+    def _render_and_publish_inner(self, seg: DeliverySegment, lane: dict) -> None:
         # Pre-drop: if the render cannot make the deadline, save the credits.
         deadline = self.t0 + seg.anchor + self.delay
         if time.time() + self.TTS_ESTIMATE > deadline - DEADLINE_MARGIN:
@@ -218,31 +276,33 @@ class LiveSession:
         # Calibrated speed pick: estimate duration from observed
         # chars-per-second and choose the speed UP FRONT — one render
         # instead of render-measure-rerender (double billing).
-        base = self.tts.base_speed
-        estimate = len(seg.text) / self._cps()
+        tts = lane["tts"]
+        base = tts.base_speed
+        estimate = len(seg.text) / self._cps(lane)
         speed = base
         if seg.slot > 0 and estimate > seg.slot:
             speed = min(1.2, round(base * estimate / seg.slot, 2))
         with self.lock:
-            prev = self._prev_text
+            prev = lane["prev_text"]
 
-        mp3 = self.tts.render(seg.text, speed=speed, previous_text=prev)
+        mp3 = tts.render(seg.text, speed=speed, previous_text=prev)
         samples = audio.mp3_to_mono(mp3, self.rate)
         duration = len(samples) / self.rate
-        self._cps_samples.append((len(seg.text), duration * speed / base))
+        lane["cps_samples"].append((len(seg.text), duration * speed / base))
 
         # Overlap fade in the player absorbs small overshoots; re-render
         # only when the line badly outruns its slot and speed has room.
         if duration > seg.slot * 1.15 and speed < 1.2:
             self.fit_retries += 1
-            mp3 = self.tts.render(seg.text, speed=1.2, previous_text=prev)
+            mp3 = tts.render(seg.text, speed=1.2, previous_text=prev)
             samples = audio.mp3_to_mono(mp3, self.rate)
             duration = len(samples) / self.rate
-        self._publish(seg, mp3, duration)
+        self._publish(seg, mp3, duration, lane)
 
-    def _cps(self) -> float:
+    @staticmethod
+    def _cps(lane: dict) -> float:
         """Observed characters per second at base speed (default 14)."""
-        recent = self._cps_samples[-20:]
+        recent = lane["cps_samples"][-20:]
         if not recent:
             return 14.0
         chars = sum(c for c, _ in recent)
@@ -309,7 +369,8 @@ class LiveSession:
 
         # Built after the picker window closes, so a pre-capture VYBE
         # selection takes effect.
-        director = Director(self.llm, self.avatar)
+        self.lanes[self.active_idx]["director"] = Director(
+            self.llm, self.lanes[self.active_idx]["avatar"])
 
         def clocked_chunks():
             first = True
@@ -352,22 +413,23 @@ class LiveSession:
             if (beats and time.time() - last_word_wall > WATCHDOG_SILENCE):
                 closable = len(beats)
             for i in range(processed, closable):
-                seg = director.segment_for(beats[: i + 2] if i + 1 < len(beats) else beats, i)
+                self._activate_pending()   # switches land between beats
+                lane = self.lanes[self.active_idx]
+                view = beats[: i + 2] if i + 1 < len(beats) else beats
                 processed = i + 1
+                seg = lane["director"].segment_for(view, i)
                 if seg:
-                    tts_pool.submit(self._render_and_publish, seg)
+                    tts_pool.submit(self._render_and_publish, seg, lane)
                 else:
-                    print(f"[director] skip beat at {beats[i].start:.2f}s "
-                          f"({beats[i].text[:50]!r})")
+                    print(f"[director] [{lane['id']}] skip beat at {beats[i].start:.2f}s")
 
         # Stream ended: close out any beats the watchdog never reached.
         beats = beats_from_words(all_words)
+        lane = self.lanes[self.active_idx]
         for i in range(processed, len(beats)):
-            seg = director.segment_for(beats, i)
+            seg = lane["director"].segment_for(beats, i)
             if seg:
-                tts_pool.submit(self._render_and_publish, seg)
-            else:
-                print(f"[director] skip beat at {beats[i].start:.2f}s")
+                tts_pool.submit(self._render_and_publish, seg, lane)
         tts_pool.shutdown(wait=True)
 
     def run(self, llm=None) -> None:

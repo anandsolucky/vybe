@@ -8,6 +8,7 @@ language: hi-IN
 status: active   # real library voice unlocked 2026-08-16 (Creator plan)
 
 vybe_label: "BOMBAY VYBE"
+coming_soon: true
 card_blurb: "Articulate. Witty. Expressive. Bombay girl with vibes."
 card_image: "/brand/generated/naina.png"
 card_quote: "Yaar what a touch! Mumbai meri jaan!"

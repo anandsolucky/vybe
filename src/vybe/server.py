@@ -34,11 +34,17 @@ def make_handler(session, source_path: str, session_dir: Path):
             self._send(200, path.read_bytes(), ctype)
 
         def do_POST(self) -> None:
-            if self.path == "/avatar":
+            if self.path == "/switch":
                 length = int(self.headers.get("Content-Length", 0))
                 avatar_id = self.rfile.read(length).decode("utf-8", "replace").strip()
-                ok = session.set_avatar(avatar_id)
-                self._send(200 if ok else 409, b"ok" if ok else b"too late", "text/plain")
+                ok = session.switch_lane(avatar_id)
+                self._send(200 if ok else 409, b"ok" if ok else b"rejected", "text/plain")
+            elif self.path == "/avatars":
+                length = int(self.headers.get("Content-Length", 0))
+                body = self.rfile.read(length).decode("utf-8", "replace").strip()
+                ids = [x.strip() for x in body.split(",") if x.strip()]
+                ok = session.set_avatars(ids)
+                self._send(200 if ok else 409, b"ok" if ok else b"rejected", "text/plain")
             else:
                 self._send(404, b"not found", "text/plain")
 

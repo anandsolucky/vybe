@@ -104,12 +104,42 @@
   .rail .mini-card .small { display: block; }
   .rail .mini-card.active { border-color: var(--lime); box-shadow: 0 0 0 1px var(--lime); }
   .rail .mini-card.dim { opacity: .45; cursor: not-allowed; }
-  .caption {
-    margin-top: 16px; min-height: 58px;
-    background: var(--slate); border-left: 3px solid var(--lime);
-    padding: 11px 15px; border-radius: 10px; font-size: 15px;
+  /* CC overlay on the live feed */
+  .cc {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    bottom: 76px; max-width: 82%;
+    background: rgba(10,10,15,.78); border-radius: 10px; padding: 8px 16px;
+    text-align: center; font-size: 16px; line-height: 1.45;
+    display: none; pointer-events: none;
   }
-  .caption .en { color: var(--grey); font-size: 13px; margin-top: 4px; }
+  .cc .en { color: var(--grey); font-size: 12.5px; margin-top: 2px; }
+  .cc.onscreen { display: block; }
+  .ccbtn.active { outline: 2px solid var(--lime); border-radius: 8px; }
+  /* compact picker rows */
+  .pick-row {
+    display: flex; align-items: center; gap: 14px; padding: 12px;
+    border: 1px solid var(--line); border-radius: 14px; margin-top: 10px;
+    background: var(--slate-2);
+  }
+  .pick-row.locked { opacity: .5; }
+  .pick-row.on { border-color: var(--lime); box-shadow: 0 0 0 1px var(--lime); }
+  .pick-row .thumb {
+    width: 56px; height: 56px; border-radius: 50%; overflow: hidden; flex: none;
+    background: var(--grad-soft); display:flex; align-items:center; justify-content:center;
+    font-family: var(--font-display); font-weight: 700;
+  }
+  .pick-row .thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .badge-pre {
+    border: 1px solid var(--violet); color: #A896FF; border-radius: 999px;
+    padding: 4px 12px; font-size: 11px; font-weight: 600; letter-spacing: 1px;
+    white-space: nowrap;
+  }
+  .btn-add {
+    background: var(--black); border: 1px solid var(--line); color: var(--white);
+    border-radius: 999px; padding: 8px 18px; font-size: 13px; font-weight: 600;
+    cursor: pointer; white-space: nowrap;
+  }
+  .btn-add.on { background: var(--lime); color: #0A0A0F; border-color: var(--lime); }
   .meta { margin-top: 10px; display: flex; gap: 18px; }
 </style>
 </head>
@@ -151,29 +181,29 @@
     </div>
   </section>
 
-  <!-- S2 — picker -->
+  <!-- S2 — picker (compact, shown while the stream buffers) -->
   <section id="s2" class="screen">
-    <div class="head">
-      <div>
-        <div class="h-display">Choose your <span class="accent">VYBE</span></div>
-        <div class="sub" style="margin-top:6px">Same game, different energy. Pick the vibe that's you.</div>
+    <div class="card" style="max-width:660px;margin:40px auto;padding:26px">
+      <div class="row">
+        <div class="h-display" style="font-size:26px">Choose your <span class="accent">VYBE</span></div>
+        <div class="grow"></div>
+        <div class="wave" style="height:28px"><i></i><i></i><i></i><i></i><i></i></div>
       </div>
-      <div class="grow"></div>
-      <div class="wave" style="height:40px"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-    </div>
-    <div class="cards" id="cards"></div>
-    <div class="bottombar">
-      <div class="row grow">
-        <div class="thumb" style="width:40px;height:40px;border-radius:50%;background:var(--grad-soft);display:flex;align-items:center;justify-content:center">
-          <div class="wave still" style="height:16px"><i></i><i></i><i></i></div>
-        </div>
-        <div>
-          <b id="selName">Original</b>
-          <span class="small" id="selDesc">The official feed</span>
-        </div>
+      <div class="sub" style="margin:4px 0 14px">Any language. Any VYBE. Switch anytime during the match.</div>
+      <div class="small" style="letter-spacing:1.5px;font-weight:600">LANGUAGE</div>
+      <div class="row" style="margin:8px 0 16px;flex-wrap:wrap">
+        <span class="chip" style="font-size:14px;padding:6px 16px">हिन्दी <span style="opacity:.6">(Hindi)</span></span>
+        <span class="chip" style="border-color:var(--line);color:var(--grey);font-size:13px" title="Coming soon">ગુજરાતી <span style="opacity:.6">(Gujarati)</span></span>
+        <span class="chip" style="border-color:var(--line);color:var(--grey);font-size:13px" title="Coming soon">தமிழ் <span style="opacity:.6">(Tamil)</span></span>
+        <span class="chip" style="border-color:var(--line);color:var(--grey);font-size:13px" title="Coming soon">मराठी <span style="opacity:.6">(Marathi)</span></span>
       </div>
-      <div class="buffer"><div class="mini" id="bufRing"></div><span id="bufText">buffering…</span></div>
-      <button class="btn btn-cta" id="startBtn" disabled>Start watching</button>
+      <div class="small" style="letter-spacing:1.5px;font-weight:600;margin-bottom:2px">YOUR VYBE — HINDI</div>
+      <div id="cards"></div>
+      <div class="row" style="margin-top:20px">
+        <div class="buffer"><div class="mini" id="bufRing"></div><span id="bufText">buffering…</span></div>
+        <div class="grow"></div>
+        <button class="btn btn-cta" id="startBtn" disabled>Start watching</button>
+      </div>
     </div>
   </section>
 
@@ -181,18 +211,19 @@
   <section id="s3" class="screen">
     <div class="stage" id="stage">
       <video id="video" playsinline preload="auto"></video>
+      <div class="cc" id="caption"></div>
       <div class="controlbar" id="bar">
         <button class="pp" id="ppBtn" title="Pause">&#10074;&#10074;</button>
         <span class="small" id="barTime" style="color:var(--white)">0:00</span>
         <div class="strip" title="Live streaming"></div>
         <span class="small" style="color:var(--lime)" id="barLag">Live streaming</span>
+        <button class="ctl ccbtn active" id="ccBtn" title="Captions"><img src="/ui/icons/translate.png" alt="CC" style="width:20px;height:20px;object-fit:contain"></button>
         <img src="/ui/icons/speaker.png" alt="" style="width:20px;height:20px;object-fit:contain;opacity:.85">
         <input class="vol" id="vol" type="range" min="0" max="1" step="0.02" value="1" title="Volume">
         <button class="ctl" id="fsBtn" title="Fullscreen"><img src="/ui/icons/fullscreen.png" alt="⤢" style="width:20px;height:20px;object-fit:contain"></button>
       </div>
     </div>
     <div class="rail" id="rail"></div>
-    <div class="caption" id="caption">&nbsp;</div>
     <div class="meta small">
       <span id="segCount">0 segments</span>
       <span id="modeLabel">mode: original</span>
@@ -211,7 +242,10 @@ let state = null, clockOffset = 0;
 let ctx, gainOriginal, gainBed, gainVoice, gainDuck, gainMaster, sideAnalyser, midAnalyser;
 let scheduled = new Set(), activeNodes = [];
 let bedIsMono = false, newestAnchorStarted = -1;
-let mode = "original", selectedVybe = "original", playbackStarted = false;
+let mode = "original", playbackStarted = false;
+let secondVybe = null;        // optional second lane (max 2 with primary)
+let activeVybeId = null;      // which lane is audible in vybe mode
+let ccOn = true;
 const BED_GAIN = 1.2, DUCK_BED = 0.30, DUCK_TALK = 0.06;
 let captureStream = null, captureStart = null, pcmStart = null, mediaChunks = [], liveCtx;
 let sourceBuffer = null, initialSkew = null;
@@ -241,6 +275,7 @@ async function poll() {
         console.warn(`[vybe] ASR ingest lag ${state.usage.asr_ingest_lag}s`);
     }
     if (!bootDone) boot();
+    else if (playbackStarted) renderRail();
   } catch (e) { /* server restarting */ }
   setTimeout(poll, 1000);
 }
@@ -254,67 +289,33 @@ function boot() {
 }
 poll();
 
-/* ---------------- picker ---------------- */
-const PLACEHOLDER_QUOTE = "And that's a magnificent shot through the covers!";
-
-function cardHTML(v) {
-  const selected = selectedVybe === v.id ? " selected" : "";
-  const lime = v.id !== "original" ? " lime-ring" : "";
-  const portrait = v.image
-    ? `<img src="${v.image}" alt="${v.name}">`
-    : (v.id === "original"
-        ? `<div class="wave" style="height:56px"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>`
-        : `<span class="ph-initial">${v.name[0]}</span>`);
-  return `<div class="card vybe-card${selected}${lime}" data-id="${v.id}">
-    <div class="row"><span class="chip${v.id === "original" ? " chip-violet" : ""}">${v.label}</span><div class="grow"></div><div class="tick">✓</div></div>
-    <div class="portrait">${portrait}</div>
-    <div style="text-align:center">
-      <div class="h-card">${v.name}</div>
-      <div class="sub" style="margin-top:4px">${v.blurb}</div>
-    </div>
-    <div class="quote${v.id === "original" ? " violet" : ""}">“${v.quote}”</div>
-  </div>`;
-}
-
-function roster() {
-  const list = [{
-    id: "original", name: "Original Broadcast", label: "ORIGINAL",
-    blurb: "The official feed", quote: PLACEHOLDER_QUOTE,
-    image: "/brand/generated/waveform-emblem.png",
-  }];
-  for (const a of (state.avatars || [])) {
-    list.push({
-      id: a.id, name: a.name, label: a.label || "VYBE",
-      blurb: a.blurb || a.description || "", quote: a.quote || "…",
-      image: a.image || null, active: a.id === state.avatar_id,
-    });
-  }
-  return list;
+/* ---------------- picker (compact) ---------------- */
+function pickRow(a) {
+  const isStarter = a.id === state.avatar_id;
+  const right = isStarter
+    ? `<span class="badge-pre">ON THE MIC</span>`
+    : a.locked
+      ? `<span class="badge-pre" style="border-color:var(--line);color:var(--grey)">COMING SOON</span>`
+      : `<button class="btn-add" data-start="${a.id}">START WITH</button>`;
+  return `<div class="pick-row${isStarter ? " on" : ""}${a.locked ? " locked" : ""}">
+    <div class="thumb">${a.image ? `<img src="${a.image}">` : a.name[0]}</div>
+    <div><b>${a.name}</b> <span class="chip" style="margin-left:6px">${a.label}</span>
+      <span class="small" style="display:block;margin-top:2px">${a.blurb}</span></div>
+    <div class="grow"></div>${right}</div>`;
 }
 
 function renderPicker() {
-  $("cards").innerHTML = roster().map(cardHTML).join("");
-  for (const el of document.querySelectorAll(".vybe-card"))
-    el.onclick = () => selectVybe(el.dataset.id);
-  updateSelectionBar();
+  $("cards").innerHTML = (state.avatars || []).map(pickRow).join("");
+  for (const b of document.querySelectorAll("[data-start]"))
+    b.onclick = () => chooseStarter(b.dataset.start);
 }
 
-async function selectVybe(id) {
-  if (id !== "original" && id !== state.avatar_id) {
-    const res = await fetch("/avatar", { method: "POST", body: id });
-    if (res.status === 409) {
-      alert("This VYBE joins from the next session — the current one is already live.");
-      return;
-    }
-  }
-  selectedVybe = id;
+async function chooseStarter(id) {
+  const res = await fetch("/avatars", { method: "POST", body: id });
+  if (res.status === 409) { alert("The stream already started — use the switch in the player instead."); return; }
+  // state.avatar_id updates on the next poll; refresh optimistically
+  state.avatar_id = id;
   renderPicker();
-}
-
-function updateSelectionBar() {
-  const v = roster().find(x => x.id === selectedVybe) || roster()[0];
-  $("selName").textContent = v.name;
-  $("selDesc").textContent = v.blurb;
 }
 
 /* ---------------- clocks ---------------- */
@@ -527,7 +528,8 @@ function applyBedGains() {
 function setMode(next) {
   mode = next;
   applyBedGains();
-  $("modeLabel").textContent = "mode: " + (next === "vybe" ? state.avatar : "original");
+  $("modeLabel").textContent = "mode: " + (next === "vybe" ? (activeVybeId || state.avatar_id) : "original");
+  caption.classList.toggle("onscreen", ccOn && next === "vybe" && caption.innerHTML.trim() !== "");
   renderRail();
 }
 
@@ -567,6 +569,10 @@ async function scheduleSegments() {
       }
       newestAnchorStarted = Math.max(newestAnchorStarted, seg.anchor);
       activeNodes.push({ startAt, dur: decoded.duration, node, gain: segGain, anchor: seg.anchor });
+      const laneId = seg.vybe || state.avatar_id;
+      setTimeout(() => { if (activeVybeId !== laneId) { activeVybeId = laneId; renderRail();
+        $("modeLabel").textContent = mode === "vybe" ? "mode: " + laneId : "mode: original"; } },
+        Math.max(0, lead) * 1000);
       while (activeNodes.length > 8) activeNodes.shift();
       if (bedIsMono && mode === "vybe") {
         const g = gainDuck.gain;
@@ -589,6 +595,7 @@ async function scheduleSegments() {
           en.textContent = seg.english;
           caption.appendChild(en);
         }
+        caption.classList.toggle("onscreen", ccOn && mode === "vybe");
       }, Math.max(0, lead) * 1000);
     } catch (e) { console.error("[vybe] schedule failed", seg.url, e); }
   }
@@ -609,7 +616,8 @@ $("startBtn").onclick = async () => {
     video.currentTime = Math.max(0, currentSrcNow());
     await video.play();
   }
-  setMode(selectedVybe === "original" ? "original" : "vybe");
+  activeVybeId = state.avatar_id;
+  setMode("vybe");
   setInterval(scheduleSegments, 500);
   setInterval(() => {
     if (isPaused) return;
@@ -626,25 +634,36 @@ $("startBtn").onclick = async () => {
 
 /* ---------------- rail ---------------- */
 function renderRail() {
-  const items = roster();
+  const queued = state.queued_vybe || null;
+  const items = [{ id: "original", name: "Original", label: "Official feed",
+                   image: "/brand/generated/waveform-emblem.png" }]
+    .concat(state.avatars || []);
   $("rail").innerHTML = items.map(v => {
-    const isSession = v.id === "original" || v.id === state.avatar_id;
     const active = (v.id === "original" && mode === "original") ||
-                   (v.id === state.avatar_id && mode === "vybe");
-    const cls = `card mini-card${active ? " active" : ""}${isSession ? "" : " dim"}`;
-    const thumb = v.image ? `<img src="${v.image}">` : (v.id === "original"
-      ? `<div class="wave still" style="height:18px"><i></i><i></i><i></i></div>` : v.name[0]);
-    const note = isSession ? (v.id === "original" ? "Official feed" : v.label)
-                           : "Next session";
-    return `<div class="${cls}" data-id="${v.id}" data-live="${isSession}">
+                   (mode === "vybe" && v.id === (activeVybeId || state.avatar_id));
+    const isQueued = v.id === queued;
+    const cls = `card mini-card${active ? " active" : ""}${v.locked ? " dim" : ""}`;
+    const thumb = v.image ? `<img src="${v.image}">` : v.name[0];
+    const note = v.id === "original" ? "Official feed"
+      : v.locked ? "Coming soon"
+      : isQueued ? "Warming up…" : v.label;
+    const spin = isQueued ? `<div class="mini" style="width:20px;height:20px;border-width:2px;margin-left:auto"></div>` : "";
+    return `<div class="${cls}" data-id="${v.id}" data-locked="${!!v.locked}">
       <div class="thumb">${thumb}</div>
-      <div><b>${v.name}</b><span class="small">${note}</span></div>
+      <div><b>${v.name}</b><span class="small">${note}</span></div>${spin}
     </div>`;
   }).join("");
   for (const el of document.querySelectorAll(".mini-card")) {
-    el.onclick = () => {
-      if (el.dataset.live !== "true") return;
-      setMode(el.dataset.id === "original" ? "original" : "vybe");
+    el.onclick = async () => {
+      const id = el.dataset.id;
+      if (el.dataset.locked === "true") return;
+      if (id === "original") { setMode("original"); return; }
+      setMode("vybe");
+      const current = activeVybeId || state.avatar_id;
+      if (id !== current && id !== state.queued_vybe) {
+        const res = await fetch("/switch", { method: "POST", body: id });
+        if (res.ok) { state.queued_vybe = id; renderRail(); }
+      }
     };
   }
 }
@@ -673,6 +692,11 @@ async function togglePlay() {
 $("ppBtn").onclick = togglePlay;
 video.addEventListener("click", togglePlay);
 $("vol").oninput = () => { if (gainMaster) gainMaster.gain.value = parseFloat($("vol").value); };
+$("ccBtn").onclick = () => {
+  ccOn = !ccOn;
+  $("ccBtn").classList.toggle("active", ccOn);
+  caption.classList.toggle("onscreen", ccOn && caption.innerHTML.trim() !== "");
+};
 $("fsBtn").onclick = () => {
   if (document.fullscreenElement) document.exitFullscreen();
   else $("stage").requestFullscreen();
