@@ -170,7 +170,9 @@ class LiveSession:
 
         director = Director(self.llm, self.avatar)
         words_q: queue.Queue = queue.Queue()
-        tts_pool = ThreadPoolExecutor(max_workers=3)
+        # ElevenLabs Free plan allows 2 concurrent requests; a third worker
+        # earns HTTP 429 and a dropped segment (seen live 2026-08-16).
+        tts_pool = ThreadPoolExecutor(max_workers=2)
 
         if self.input_spec == "browser":
             # Tab mode: the player captures a Chrome tab and streams PCM to
