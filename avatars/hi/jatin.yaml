@@ -10,7 +10,8 @@ status: active   # real library voice unlocked 2026-08-16 (Creator plan)
 engine: elevenlabs
 engine_config:
   model_id: eleven_v3
-  voice_id: 7qBNUtXRGP0jPi0H4r8k    # user-picked library voice (paid plan)
+  voice_id: IX4AgWzTnD6q0cNvHqvK    # library voice under review 2026-08-16
+  previous_voice_id: 7qBNUtXRGP0jPi0H4r8k  # earlier pick, kept for comparison
   fallback_voice_id: onwK4e9ZLuTAKqWW03F9  # Daniel — premade broadcast anchor
   voice_settings:
     stability: 0.0                  # Creative — user: too robotic at 0.5; composure comes from the writing

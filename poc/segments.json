@@ -1,37 +1,44 @@
 [
   {
-    "text": "[excited] Third man deep है, but Fineleg अंदर है bro. Uppercut trap set है, edge मिल सकता है.",
+    "text": "[excited] तीसरा man deep है, लेकिन Fine leg अंदर है — [warmly] uppercut खुला है।",
     "anchor": 1.1999999,
-    "slot_end": 7.68
+    "slot_end": 7.68,
+    "english": "Third man is deep, but Fine leg is inside the circle — the uppercut is on."
   },
   {
-    "text": "[excited] Power shot ki soch hai.",
+    "text": "[excited] Power का option खुला है!",
     "anchor": 7.68,
-    "slot_end": 10.32
+    "slot_end": 10.32,
+    "english": "The option for power is open!"
   },
   {
-    "text": "[shouts] Golly ने straight down the ground मारा है — sensational hit, pure timing, pure class!",
+    "text": "[shouts] Golly ने down the ground मारा — [shouts, ecstatic] क्या sensational hit है!",
     "anchor": 10.32,
-    "slot_end": 17.015
+    "slot_end": 17.015,
+    "english": "Golly has hit it down the ground — what a sensational hit!"
   },
   {
-    "text": "[shouts] Virat Kohli, bhai!",
+    "text": "[shouts] Kohli! अद्भुत है!",
     "anchor": 17.015,
-    "slot_end": 19.095001
+    "slot_end": 19.095001,
+    "english": "Kohli! Incredible!"
   },
   {
-    "text": "[excited] 68 off 49 और अब पूरी innings का gear बदल गया है. Kohli mode on है.",
+    "text": "[excited] 68 off 49 में Kohli अब turn on कर रहे हैं — [shouts] क्या tempo है!",
     "anchor": 19.095001,
-    "slot_end": 25.654999
+    "slot_end": 25.654999,
+    "english": "Kohli is turning it on at 68 off 49 — what tempo!"
   },
   {
-    "text": "[excited] Pure style, absolute class.",
+    "text": "[warmly] अब style भी है।",
     "anchor": 25.654999,
-    "slot_end": 27.255001
+    "slot_end": 27.255001,
+    "english": "Now there is style too."
   },
   {
-    "text": "[shouts] क्या shot है ये, bro!",
+    "text": "[shouts] क्या shot है — Kohli का class!",
     "anchor": 27.255001,
-    "slot_end": 31.375
+    "slot_end": 31.375,
+    "english": "What a shot — Kohli's class!"
   }
 ]

@@ -8,7 +8,8 @@ status: finalized
 engine: elevenlabs
 engine_config:
   model_id: eleven_v3
-  voice_id: iP95p4xoKVk53GoZ742B   # "Chris" — ElevenLabs premade, user-approved for Kabir
+  voice_id: Zh845mZcOk2fUoLpOzfD   # library voice under review 2026-08-16
+  fallback_voice_id: iP95p4xoKVk53GoZ742B  # "Chris" — previous approved voice
   voice_settings:
     stability: 0.0                 # Creative — maximum tag response
     speed: 1.1
