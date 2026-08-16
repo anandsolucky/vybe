@@ -124,12 +124,24 @@ class LiveSession:
 
     def _render_and_publish(self, seg: DeliverySegment) -> None:
         # Runs in a worker thread; never let an error vanish silently.
+        if getattr(self, "tts_exhausted", False):
+            with self.lock:
+                self.manifest["drops"] += 1
+            return
         try:
             self._render_and_publish_inner(seg)
         except Exception as err:
             with self.lock:
                 self.manifest["drops"] += 1
-            print(f"[pipeline] ERROR anchor={seg.anchor:.2f}s: {err}")
+            if "quota_exceeded" in str(err):
+                self.tts_exhausted = True
+                with self.lock:
+                    self.manifest["tts_exhausted"] = True
+                print("[pipeline] TTS QUOTA EXHAUSTED — no further renders this "
+                      "session. Upgrade the ElevenLabs plan or wait for the "
+                      "monthly reset.")
+            else:
+                print(f"[pipeline] ERROR anchor={seg.anchor:.2f}s: {err}")
 
     def _render_and_publish_inner(self, seg: DeliverySegment) -> None:
         # Pre-drop: if the render cannot make the deadline, save the credits.
