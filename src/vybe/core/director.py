@@ -88,8 +88,10 @@ loudness, and pace changes.
    before you return it."""
 
 OUTPUT_RULES = """Reply with STRICT JSON only, no code fences:
-{"skip": false, "text": "..."}  — one commentary line for the new beat
+{"skip": false, "text": "...", "english": "..."}
 {"skip": true}                  — say nothing for this beat
+"text" is your commentary line. "english" is a natural English rendering
+of the same line for captions (plain text, no audio tags).
 Skip only when the beat truly has nothing (dead air, pure repetition of
 what you just said). A live commentator keeps the mic warm — when in
 doubt, speak."""
@@ -211,7 +213,8 @@ class Director:
 
         anchor = beats[index].start
         self.previous.append((anchor, text))
-        return DeliverySegment(text=text, anchor=anchor, slot_end=anchor + slot)
+        return DeliverySegment(text=text, anchor=anchor, slot_end=anchor + slot,
+                               english=reply.get("english", "").strip())
 
     def direct(self, words: list[Word]) -> list[DeliverySegment]:
         """Offline mode: full transcript in, all segments out."""

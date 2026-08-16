@@ -121,7 +121,7 @@ class LiveSession:
             self.manifest["segments"].append({
                 "anchor": seg.anchor, "slot_end": seg.slot_end,
                 "duration": round(duration, 2), "url": f"/media/{name}",
-                "text": seg.text, "lead": round(lead, 1),
+                "text": seg.text, "english": seg.english, "lead": round(lead, 1),
             })
         print(f"[pipeline] published anchor={seg.anchor:6.2f}s lead={lead:4.1f}s  {seg.text[:60]}")
         burn = self.tts.billed_last(1800)

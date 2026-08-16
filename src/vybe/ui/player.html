@@ -67,10 +67,11 @@
     padding: 10px 14px; border-radius: 10px; font-size: 14px;
   }
   .caption {
-    margin-top: 14px; min-height: 44px; color: var(--white);
+    margin-top: 14px; min-height: 56px; color: var(--white);
     background: var(--slate); border-left: 3px solid var(--lime);
     padding: 10px 14px; border-radius: 8px; font-size: 15px;
   }
+  .caption .en { color: var(--grey); font-size: 13px; margin-top: 4px; }
   .meta { margin-top: 10px; color: var(--grey); font-size: 12px; display: flex; gap: 18px; }
   .choose { color: var(--grey); font-size: 12px; margin-right: 4px; letter-spacing: 1px; }
 </style>
@@ -113,6 +114,7 @@
   <div class="meta">
     <span id="segCount">0 segments</span>
     <span id="mode">mode: original</span>
+    <span id="credits">0 credits</span>
     <span id="clock"></span>
   </div>
 </main>
@@ -149,6 +151,11 @@ async function poll() {
     }
     segCount.textContent = `${state.segments.length} segments`;
     document.getElementById("btnKabir").textContent = state.avatar;
+    if (state.usage) {
+      document.getElementById("credits").textContent =
+        `${state.usage.tts_billed_chars.toLocaleString()} credits this session` +
+        ` · ${state.usage.tts_chars_30min.toLocaleString()} in 30 min`;
+    }
     if (state.video_type === "tab" && !captureStream) {
       startBtn.textContent = "CAPTURE TAB";
       countdown.textContent = "Pick the tab playing the match — share it WITH audio";
@@ -329,7 +336,18 @@ async function scheduleSegments() {
       else node.start(ctx.currentTime, -lead);       // join mid-line
       console.log(`[vybe] scheduled anchor=${seg.anchor}s lead=${lead.toFixed(2)}s`);
       const showIn = Math.max(0, lead) * 1000;
-      setTimeout(() => { caption.textContent = seg.text; }, showIn);
+      setTimeout(() => {
+        caption.innerHTML = "";
+        const main = document.createElement("div");
+        main.textContent = seg.text;
+        caption.appendChild(main);
+        if (seg.english) {
+          const en = document.createElement("div");
+          en.className = "en";
+          en.textContent = seg.english;
+          caption.appendChild(en);
+        }
+      }, showIn);
     } catch (e) { console.error("[vybe] schedule failed", seg.url, e); }
   }
 }

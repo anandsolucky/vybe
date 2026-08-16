@@ -96,7 +96,8 @@ def direct(args: list[str]) -> int:
 
     out = ROOT / "poc" / "segments.json"
     out.write_text(jsonlib.dumps(
-        [{"text": s.text, "anchor": s.anchor, "slot_end": s.slot_end} for s in segments],
+        [{"text": s.text, "anchor": s.anchor, "slot_end": s.slot_end,
+          "english": s.english} for s in segments],
         ensure_ascii=False, indent=2,
     ))
     print(f"\nsaved {len(segments)} segments -> {out}")
@@ -125,7 +126,8 @@ def render(args: list[str]) -> int:
 
     if segments_path:
         data = jsonlib.loads((ROOT / segments_path).read_text())
-        segments = [DeliverySegment(d["text"], d["anchor"], d["slot_end"]) for d in data]
+        segments = [DeliverySegment(d["text"], d["anchor"], d["slot_end"],
+                                    d.get("english", "")) for d in data]
         print(f"loaded {len(segments)} segments from {segments_path}")
     else:
         print("no --segments given: running transcript + director first")
@@ -133,7 +135,8 @@ def render(args: list[str]) -> int:
         if code != 0:
             return code
         data = jsonlib.loads((ROOT / "poc" / "segments.json").read_text())
-        segments = [DeliverySegment(d["text"], d["anchor"], d["slot_end"]) for d in data]
+        segments = [DeliverySegment(d["text"], d["anchor"], d["slot_end"],
+                                    d.get("english", "")) for d in data]
 
     avatar = load_avatar(cfg.get("default_language", "hi"), avatar_id)
     out_path = str(ROOT / "poc" / f"vybe_{avatar_id}_auto.mp4")
@@ -179,7 +182,8 @@ def play(args: list[str]) -> int:
         if arg == "--replay" and i + 1 < len(args):
             from .providers.base import DeliverySegment
             data = jsonlib.loads((ROOT / args[i + 1]).read_text())
-            replay = [DeliverySegment(d["text"], d["anchor"], d["slot_end"]) for d in data]
+            replay = [DeliverySegment(d["text"], d["anchor"], d["slot_end"],
+                                      d.get("english", "")) for d in data]
         if arg == "--port" and i + 1 < len(args):
             port = int(args[i + 1])
 

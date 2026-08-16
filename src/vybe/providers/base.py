@@ -23,6 +23,7 @@ class DeliverySegment:
     text: str
     anchor: float
     slot_end: float
+    english: str = ""   # caption-only English rendering of the line
 
     @property
     def slot(self) -> float:
