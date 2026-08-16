@@ -212,10 +212,6 @@ class LiveSession:
         seconds = sum(d for _, d in recent)
         return max(8.0, chars / max(seconds, 0.1))
 
-    def set_title(self, title: str) -> None:
-        with self.lock:
-            self.manifest["title"] = title.strip()[:60]
-
     # -- replay mode ------------------------------------------------------
     def _run_replay(self) -> None:
         print(f"[pipeline] replay: {len(self.replay)} segments")

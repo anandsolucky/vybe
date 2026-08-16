@@ -79,8 +79,7 @@
 <body>
 <header>
   <div class="logo">VYBE</div>
-  <div class="tag" id="headerTag" style="cursor:pointer"
-       title="Click to name the match">Same game. Your vibe.</div>
+  <div class="tag">Same game. Your vibe.</div>
   <div class="live" id="liveBadge">15s behind live</div>
 </header>
 <main>
@@ -94,7 +93,6 @@
     <div class="bar" id="bar" style="display:none">
       <button class="pp" id="ppBtn" title="Pause">&#10074;&#10074;</button>
       <span class="t" id="barTime">0:00</span>
-      <span class="t" id="barTitle" style="opacity:.75"></span>
       <span class="lag" id="barLag"></span>
     </div>
   </div>
@@ -159,11 +157,6 @@ async function poll() {
     }
     segCount.textContent = `${state.segments.length} segments`;
     document.getElementById("btnKabir").textContent = state.avatar;
-    if (state.title) {
-      document.getElementById("headerTag").textContent = state.title;
-      document.getElementById("barTitle").textContent = state.title;
-      document.title = `VYBE — ${state.title}`;
-    }
     if (state.usage) {
       document.getElementById("credits").textContent =
         `${state.usage.tts_billed_chars.toLocaleString()} credits this session` +
@@ -239,17 +232,6 @@ async function startTabCapture() {
     throw new Error("no tab audio");
   }
   captureStart = performance.now();
-
-  // The shared tab's title rides on the video track label in Chrome.
-  const rawLabel = captureStream.getVideoTracks()[0]?.label || "";
-  console.log("[vybe] capture track label:", JSON.stringify(rawLabel));
-  if (rawLabel && !/^(screen|window|web-contents|monitor|tab:)/i.test(rawLabel)) {
-    const title = rawLabel.replace(/ - (YouTube|Google Chrome).*$/i, "").trim();
-    document.getElementById("barTitle").textContent = title;
-    document.getElementById("headerTag").textContent = title;   // visible immediately
-    countdown.textContent = `Buffering: ${title}`;
-    document.title = `VYBE — ${title}`;
-  }
 
   // Path 1: record for delayed playback.
   const rec = new MediaRecorder(captureStream,
@@ -565,16 +547,6 @@ startBtn.onclick = async () => {
 
 document.getElementById("btnOriginal").onclick = () => setMode("original");
 document.getElementById("btnKabir").onclick = () => setMode("vybe");
-
-document.getElementById("headerTag").onclick = async () => {
-  const current = state && state.title ? state.title : "";
-  const title = window.prompt("Match title:", current);
-  if (title === null) return;
-  await fetch("/title", { method: "POST", body: title });
-  document.getElementById("headerTag").textContent = title || "Same game. Your vibe.";
-  document.getElementById("barTitle").textContent = title;
-  document.title = title ? `VYBE — ${title}` : "VYBE";
-};
 </script>
 </body>
 </html>

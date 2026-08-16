@@ -21,14 +21,6 @@ def make_handler(session, source_path: str, session_dir: Path):
             self.end_headers()
             self.wfile.write(body)
 
-        def do_POST(self) -> None:
-            if self.path == "/title":
-                length = int(self.headers.get("Content-Length", 0))
-                session.set_title(self.rfile.read(length).decode("utf-8", "replace"))
-                self._send(200, b"ok", "text/plain")
-            else:
-                self._send(404, b"not found", "text/plain")
-
         def do_GET(self) -> None:
             if self.path in ("/", "/index.html"):
                 self._send(200, (UI_DIR / "player.html").read_bytes(),
