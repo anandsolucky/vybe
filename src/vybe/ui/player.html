@@ -137,7 +137,9 @@ let scheduled = new Set();
 let activeNodes = [];    // playing commentary lines, for overlap fades
 let bedIsMono = false;   // mono source -> ducked-original bed fallback
 let newestAnchorStarted = -1;  // monotonic gate: never play a stale line
-const DUCK_BED = 0.35;
+const DUCK_BED = 0.30;   // between Kabir's lines: atmosphere audible
+const DUCK_TALK = 0.06;  // while Kabir speaks: original commentator gone
+let pcmStart = null;     // when PCM actually started flowing (anchor zero)
 let mode = "original";
 const BED_GAIN = 1.2;    // matches config.yaml bed_gain
 
@@ -247,6 +249,7 @@ async function startTabCapture() {
   src.connect(proc); proc.connect(mute); mute.connect(liveCtx.destination);
   proc.onaudioprocess = (e) => {
     if (ws.readyState !== WebSocket.OPEN) return;
+    if (pcmStart === null) pcmStart = performance.now();
     const L = e.inputBuffer.getChannelData(0);
     const R = e.inputBuffer.numberOfChannels > 1 ? e.inputBuffer.getChannelData(1) : L;
     const out = new Int16Array(Math.floor(L.length / 3)); // 48k -> 16k
@@ -406,9 +409,13 @@ async function scheduleSegments() {
   const now = video.currentTime;
   for (const seg of state.segments) {
     if (scheduled.has(seg.url)) continue;
-    // Tab mode: correct the anchor for any video-timeline holes so the
-    // line lands on what is actually on screen.
-    const anchorV = (state.video_type === "tab") ? seg.anchor - holeSkew() : seg.anchor;
+    // Tab mode: correct the anchor for (a) PCM starting after the video
+    // recording did — anchors are on the PCM clock, video is on the
+    // recorder clock — and (b) any video-timeline holes.
+    const pcmOffset = (state.video_type === "tab" && pcmStart !== null && captureStart !== null)
+      ? (pcmStart - captureStart) / 1000 : 0;
+    const anchorV = (state.video_type === "tab")
+      ? seg.anchor + pcmOffset - holeSkew() : seg.anchor;
     const dt = anchorV - now;
     // Short horizon: schedule at most 2s ahead, always relative to the
     // CURRENT video position. A video stall or drift-seek can then never
@@ -443,6 +450,15 @@ async function scheduleSegments() {
       }
       newestAnchorStarted = Math.max(newestAnchorStarted, seg.anchor);
       activeNodes.push({ startAt, dur: decoded.duration, node, gain: segGain, anchor: seg.anchor });
+      // Sidechain: in mono-fallback mode the bed is the ducked original —
+      // drop it to near-silence while Kabir speaks, swell back after.
+      if (bedIsMono && mode === "vybe") {
+        const g = gainDuck.gain;
+        g.setValueAtTime(DUCK_BED, Math.max(ctx.currentTime, startAt - 0.15));
+        g.linearRampToValueAtTime(DUCK_TALK, startAt);
+        g.setValueAtTime(DUCK_TALK, startAt + decoded.duration);
+        g.linearRampToValueAtTime(DUCK_BED, startAt + decoded.duration + 0.5);
+      }
       while (activeNodes.length > 8) activeNodes.shift();
       if (lead >= 0) node.start(startAt);
       else node.start(ctx.currentTime, -lead);       // join mid-line
