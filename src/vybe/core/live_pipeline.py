@@ -212,21 +212,9 @@ class LiveSession:
         seconds = sum(d for _, d in recent)
         return max(8.0, chars / max(seconds, 0.1))
 
-    def _detect_title(self, words) -> None:
-        try:
-            transcript = " ".join(w.text for w in words[:250])
-            reply = self.llm.complete(
-                "You name cricket fixtures from commentary. Reply with ONLY a "
-                "short title like 'AUS vs BAN — 1st Test' or 'IND vs PAK — T20 "
-                "World Cup'. If the teams are unclear, reply exactly UNKNOWN.",
-                transcript,
-            ).strip()
-            if reply and "UNKNOWN" not in reply.upper() and len(reply) <= 60:
-                with self.lock:
-                    self.manifest["title"] = reply
-                print(f"[pipeline] match identified: {reply}")
-        except Exception as err:
-            print(f"[pipeline] title detection failed: {err}")
+    def set_title(self, title: str) -> None:
+        with self.lock:
+            self.manifest["title"] = title.strip()[:60]
 
     # -- replay mode ------------------------------------------------------
     def _run_replay(self) -> None:
@@ -327,15 +315,6 @@ class LiveSession:
             closable = len(beats) - 1
             if (beats and time.time() - last_word_wall > WATCHDOG_SILENCE):
                 closable = len(beats)
-            # Chrome hides the captured tab's title (privacy), so VYBE
-            # names the match from the commentary itself — once, early.
-            if ("title" not in self.manifest and all_words
-                    and all_words[-1].end > 40):
-                self.manifest["title"] = ""  # sentinel: one attempt only
-                words_snapshot = list(all_words)
-                threading.Thread(target=self._detect_title,
-                                 args=(words_snapshot,), daemon=True).start()
-
             for i in range(processed, closable):
                 seg = director.segment_for(beats[: i + 2] if i + 1 < len(beats) else beats, i)
                 processed = i + 1

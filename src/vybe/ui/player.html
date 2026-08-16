@@ -79,7 +79,8 @@
 <body>
 <header>
   <div class="logo">VYBE</div>
-  <div class="tag" id="headerTag">Same game. Your vibe.</div>
+  <div class="tag" id="headerTag" style="cursor:pointer"
+       title="Click to name the match">Same game. Your vibe.</div>
   <div class="live" id="liveBadge">15s behind live</div>
 </header>
 <main>
@@ -564,6 +565,16 @@ startBtn.onclick = async () => {
 
 document.getElementById("btnOriginal").onclick = () => setMode("original");
 document.getElementById("btnKabir").onclick = () => setMode("vybe");
+
+document.getElementById("headerTag").onclick = async () => {
+  const current = state && state.title ? state.title : "";
+  const title = window.prompt("Match title:", current);
+  if (title === null) return;
+  await fetch("/title", { method: "POST", body: title });
+  document.getElementById("headerTag").textContent = title || "Same game. Your vibe.";
+  document.getElementById("barTitle").textContent = title;
+  document.title = title ? `VYBE — ${title}` : "VYBE";
+};
 </script>
 </body>
 </html>
