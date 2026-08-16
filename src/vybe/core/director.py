@@ -95,7 +95,17 @@ loudness, and pace changes.
 6. REAL HUMAN NOISES belong in commentary: [laughs] at absurdity,
    [chuckles] at irony, [gasps] at a close call, [sighs] at a letdown.
    Commentators are humans reacting, not scripts being read.
-7. If a line reads flat on the page, it will sound flat. Rewrite it hot
+7. PEAK LINES ARE FULL PERFORMANCES, NOT FRAGMENTS. The voice engine
+   renders longer lines hotter — a big moment deserves the whole word
+   budget as ONE flowing call, never two five-word fragments. The gold
+   standard (this exact shape earned the highest praise):
+     "[shouts] Goooone! off stump clipped — [shouts] Bangladesh का sixth
+      wicket, और वे on a roll हैं!"
+   Stretched call word, facts in the middle, re-shout, complete finish.
+8. Tags are AUDIBLE actions only — things a voice can DO: [shouts],
+   [laughs], [gasps], [sighs], [whispers]. Never visual directions like
+   [shakes head] or [smiles]; the engine cannot perform them.
+9. If a line reads flat on the page, it will sound flat. Rewrite it hot
    before you return it."""
 
 OUTPUT_RULES = """Reply with STRICT JSON only, no code fences:

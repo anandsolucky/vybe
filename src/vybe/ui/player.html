@@ -132,9 +132,12 @@ const liveBadge = document.getElementById("liveBadge");
 
 let state = null;        // latest /state payload
 let clockOffset = 0;     // server_now - local now
-let ctx, gainOriginal, gainBed, gainVoice;
+let ctx, gainOriginal, gainBed, gainVoice, gainDuck, sideAnalyser, midAnalyser;
 let scheduled = new Set();
 let activeNodes = [];    // playing commentary lines, for overlap fades
+let bedIsMono = false;   // mono source -> ducked-original bed fallback
+let newestAnchorStarted = -1;  // monotonic gate: never play a stale line
+const DUCK_BED = 0.35;
 let mode = "original";
 const BED_GAIN = 1.2;    // matches config.yaml bed_gain
 
@@ -297,6 +300,31 @@ function buildAudioGraph() {
   gainBed.gain.value = 0;
   side.connect(gainBed).connect(ctx.destination);
 
+  // Mono sources make L-R silent (dead crowd). Fallback: duck the
+  // original under the commentary instead. Analysers decide which.
+  gainDuck = ctx.createGain();
+  gainDuck.gain.value = 0;
+  src.connect(gainDuck).connect(ctx.destination);
+  sideAnalyser = ctx.createAnalyser(); sideAnalyser.fftSize = 2048;
+  midAnalyser = ctx.createAnalyser(); midAnalyser.fftSize = 2048;
+  side.connect(sideAnalyser);
+  src.connect(midAnalyser);
+  setInterval(() => {
+    if (mode !== "vybe") return;
+    const rms = (an) => {
+      const buf = new Float32Array(an.fftSize);
+      an.getFloatTimeDomainData(buf);
+      let s = 0; for (const v of buf) s += v * v;
+      return Math.sqrt(s / buf.length);
+    };
+    const mono = rms(sideAnalyser) < rms(midAnalyser) * 0.08;
+    if (mono !== bedIsMono) {
+      bedIsMono = mono;
+      console.warn(`[vybe] bed mode: ${mono ? "mono source -> ducked original" : "stereo -> center-cancel crowd"}`);
+      applyBedGains();
+    }
+  }, 3000);
+
   // Commentary bus.
   gainVoice = ctx.createGain();
   gainVoice.gain.value = 0;
@@ -305,15 +333,21 @@ function buildAudioGraph() {
   gainOriginal.gain.value = 1;
 }
 
-function setMode(next) {
-  mode = next;
+function applyBedGains() {
   const t = ctx.currentTime, RAMP = 0.15;
   const target = (g, v) => { g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(v, t + RAMP); };
-  if (next === "vybe") {
-    target(gainOriginal, 0); target(gainBed, BED_GAIN); target(gainVoice, 1);
+  if (mode === "vybe") {
+    target(gainOriginal, 0); target(gainVoice, 1);
+    target(gainBed, bedIsMono ? 0 : BED_GAIN);
+    target(gainDuck, bedIsMono ? DUCK_BED : 0);
   } else {
-    target(gainOriginal, 1); target(gainBed, 0); target(gainVoice, 0);
+    target(gainOriginal, 1); target(gainBed, 0); target(gainDuck, 0); target(gainVoice, 0);
   }
+}
+
+function setMode(next) {
+  mode = next;
+  applyBedGains();
   modeLabel.textContent = "mode: " + (next === "vybe" ? state.avatar : "original");
   document.getElementById("btnOriginal").classList.toggle("active", next === "original");
   document.getElementById("btnKabir").classList.toggle("active", next === "vybe");
@@ -331,6 +365,12 @@ async function scheduleSegments() {
     if (dt > 2) continue;
     scheduled.add(seg.url);
     if (dt < -seg.duration) continue;      // fully missed
+    // Monotonic gate: workers publish out of anchor order; never start
+    // a line older than one already playing (stale = confusing).
+    if (seg.anchor < newestAnchorStarted - 0.25) {
+      console.warn(`[vybe] skip stale line anchor=${seg.anchor}s (newest ${newestAnchorStarted}s)`);
+      continue;
+    }
     try {
       const buf = await (await fetch(seg.url)).arrayBuffer();
       const decoded = await ctx.decodeAudioData(buf);
@@ -340,17 +380,18 @@ async function scheduleSegments() {
       node.connect(segGain).connect(gainVoice);
       const lead = seg.anchor - video.currentTime;   // recompute after decode
       const startAt = ctx.currentTime + Math.max(0, lead);
-      // No conjoined voices: a line still playing when the next one
-      // starts gets a 120ms fade-out ending exactly at the new anchor.
+      // No conjoined voices: any line still playing when this one starts
+      // gets a 120ms fade-out ending exactly at the new start.
       for (const prev of activeNodes) {
         const prevEnd = prev.startAt + prev.dur;
-        if (prevEnd > startAt && prev.startAt < startAt) {
+        if (prevEnd > startAt) {
           prev.gain.gain.setValueAtTime(1, Math.max(ctx.currentTime, startAt - 0.12));
           prev.gain.gain.linearRampToValueAtTime(0, startAt);
           try { prev.node.stop(startAt + 0.02); } catch (e) {}
         }
       }
-      activeNodes.push({ startAt, dur: decoded.duration, node, gain: segGain });
+      newestAnchorStarted = Math.max(newestAnchorStarted, seg.anchor);
+      activeNodes.push({ startAt, dur: decoded.duration, node, gain: segGain, anchor: seg.anchor });
       while (activeNodes.length > 8) activeNodes.shift();
       if (lead >= 0) node.start(startAt);
       else node.start(ctx.currentTime, -lead);       // join mid-line
