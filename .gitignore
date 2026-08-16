@@ -1,0 +1,13 @@
+.env
+.venv/
+.cache/
+poc/*.mov
+poc/*.mp4
+poc/*.wav
+poc/*.mp3
+poc/*.jpg
+avatars/*/auditions/
+__pycache__/
+*.pyc
+node_modules/
+.DS_Store

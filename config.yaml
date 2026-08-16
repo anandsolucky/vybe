@@ -1,0 +1,16 @@
+# VYBE pipeline configuration. Keys live in .env, never here.
+delay_seconds: 15
+sample_rate: 44100
+default_language: hi
+default_avatar: kabir
+
+providers:
+  asr: deepgram
+  llm: openai_compatible
+  tts: elevenlabs
+
+audio:
+  bed: center_cancel   # falls back to duck when the source has no stereo separation
+  duck_level: 0.15
+  bed_gain: 1.2   # tuned down 40% from 2.0 — crowd was drowning the VYBE voice
+  side_energy_floor_db: -45   # below this, treat source as mono and duck instead

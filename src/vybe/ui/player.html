@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VYBE</title>
+<style>
+  :root {
+    --black: #0A0A0F; --slate: #17171F; --violet: #7357FF;
+    --lime: #D8FF3E; --white: #F7F7F2; --grey: #8E8E9A;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--black); color: var(--white);
+    font-family: -apple-system, "SF Pro Text", Inter, sans-serif;
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+  }
+  header {
+    width: 100%; max-width: 960px; display: flex; align-items: baseline;
+    gap: 14px; padding: 20px 16px 12px;
+  }
+  .logo { font-size: 28px; font-weight: 800; letter-spacing: 2px;
+          background: linear-gradient(90deg, var(--violet), var(--lime));
+          -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .tag { color: var(--grey); font-size: 13px; }
+  .live { margin-left: auto; font-size: 12px; color: var(--lime); }
+  .live::before { content: "●"; margin-right: 5px; }
+  main { width: 100%; max-width: 960px; padding: 0 16px 32px; }
+  .stage { position: relative; background: var(--slate); border-radius: 12px; overflow: hidden; }
+  video { width: 100%; display: block; }
+  .overlay {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 14px;
+    background: rgba(10, 10, 15, 0.88);
+  }
+  .overlay h2 { font-size: 22px; font-weight: 700; }
+  .overlay .count { color: var(--grey); font-size: 14px; }
+  .bar {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+    background: linear-gradient(transparent, rgba(10, 10, 15, 0.85));
+  }
+  .pp {
+    width: 40px; height: 40px; border-radius: 50%; border: none;
+    background: var(--violet); color: var(--white); font-size: 15px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .pp:hover { filter: brightness(1.15); }
+  .bar .t { color: var(--white); font-size: 12px; opacity: 0.85; }
+  .bar .lag { margin-left: auto; color: var(--lime); font-size: 12px; }
+  button.on {
+    background: var(--violet); border: none; color: var(--white);
+    font-size: 16px; font-weight: 700; letter-spacing: 1px;
+    padding: 14px 34px; border-radius: 999px; cursor: pointer;
+  }
+  button.on:hover { filter: brightness(1.1); }
+  .controls { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; align-items: center; }
+  .vybes { display: flex; gap: 8px; }
+  .vybe-btn {
+    background: var(--slate); color: var(--white); border: 1px solid #26262f;
+    padding: 10px 18px; border-radius: 999px; cursor: pointer; font-size: 14px;
+  }
+  .vybe-btn.active { background: var(--violet); border-color: var(--violet); font-weight: 700; }
+  .vybe-btn:disabled { color: var(--grey); cursor: not-allowed; opacity: 0.55; }
+  select {
+    background: var(--slate); color: var(--white); border: 1px solid #26262f;
+    padding: 10px 14px; border-radius: 10px; font-size: 14px;
+  }
+  .caption {
+    margin-top: 14px; min-height: 44px; color: var(--white);
+    background: var(--slate); border-left: 3px solid var(--lime);
+    padding: 10px 14px; border-radius: 8px; font-size: 15px;
+  }
+  .meta { margin-top: 10px; color: var(--grey); font-size: 12px; display: flex; gap: 18px; }
+  .choose { color: var(--grey); font-size: 12px; margin-right: 4px; letter-spacing: 1px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">VYBE</div>
+  <div class="tag">Same game. Your vibe.</div>
+  <div class="live" id="liveBadge">15s behind live</div>
+</header>
+<main>
+  <div class="stage">
+    <video id="video" playsinline preload="auto"></video>
+    <div class="overlay" id="overlay">
+      <h2>Choose your VYBE.</h2>
+      <div class="count" id="countdown">syncing…</div>
+      <button class="on" id="startBtn">VYBE ON</button>
+    </div>
+    <div class="bar" id="bar" style="display:none">
+      <button class="pp" id="ppBtn" title="Pause">&#10074;&#10074;</button>
+      <span class="t" id="barTime">0:00</span>
+      <span class="lag" id="barLag"></span>
+    </div>
+  </div>
+  <div class="controls">
+    <span class="choose">SPORT</span>
+    <select id="sport">
+      <option selected>Cricket</option>
+      <option disabled>Football — soon</option>
+      <option disabled>Tennis — soon</option>
+    </select>
+    <span class="choose">YOUR VYBE</span>
+    <div class="vybes">
+      <button class="vybe-btn active" id="btnOriginal">Original</button>
+      <button class="vybe-btn" id="btnKabir">Kabir — The Gen Z</button>
+      <button class="vybe-btn" disabled title="VYBE DROP coming soon">Naina — soon</button>
+    </div>
+  </div>
+  <div class="caption" id="caption">&nbsp;</div>
+  <div class="meta">
+    <span id="segCount">0 segments</span>
+    <span id="mode">mode: original</span>
+    <span id="clock"></span>
+  </div>
+</main>
+<script src="/hls.min.js"></script>
+<script>
+const video = document.getElementById("video");
+const overlay = document.getElementById("overlay");
+const countdown = document.getElementById("countdown");
+const startBtn = document.getElementById("startBtn");
+const caption = document.getElementById("caption");
+const segCount = document.getElementById("segCount");
+const modeLabel = document.getElementById("mode");
+const clockLabel = document.getElementById("clock");
+const liveBadge = document.getElementById("liveBadge");
+
+let state = null;        // latest /state payload
+let clockOffset = 0;     // server_now - local now
+let ctx, gainOriginal, gainBed, gainVoice;
+let scheduled = new Set();
+let mode = "original";
+const BED_GAIN = 1.2;    // matches config.yaml bed_gain
+
+async function poll() {
+  try {
+    const res = await fetch("/state");
+    state = await res.json();
+    clockOffset = state.server_now - Date.now() / 1000;
+    liveBadge.textContent = `${state.delay}s behind live`;
+    segCount.textContent = `${state.segments.length} segments`;
+    if (state.video_type === "tab" && !captureStream) {
+      startBtn.textContent = "CAPTURE TAB";
+      countdown.textContent = "Pick the tab playing the match — share it WITH audio";
+    }
+  } catch (e) { /* server restarting */ }
+  setTimeout(poll, 1000);
+}
+poll();
+
+// ---- Tab mode: capture a Chrome tab, delay it locally, feed ASR ------
+let captureStream = null, captureStart = null, mediaChunks = [], liveCtx;
+
+// ---- Pause / play (live-TV semantics: pausing grows your lag) --------
+let isPaused = false, pauseStartedAt = 0, extraDelaySec = 0;
+const ppBtn = document.getElementById("ppBtn");
+const bar = document.getElementById("bar");
+const barTime = document.getElementById("barTime");
+const barLag = document.getElementById("barLag");
+
+async function togglePlay() {
+  if (!ctx || overlay.style.display !== "none") return;
+  if (!isPaused) {
+    isPaused = true;
+    pauseStartedAt = performance.now();
+    video.pause();
+    await ctx.suspend();   // freezes scheduled commentary in lockstep
+    ppBtn.innerHTML = "&#9654;";
+    ppBtn.title = "Play";
+  } else {
+    isPaused = false;
+    extraDelaySec += (performance.now() - pauseStartedAt) / 1000;
+    await ctx.resume();
+    await video.play();
+    ppBtn.innerHTML = "&#10074;&#10074;";
+    ppBtn.title = "Pause";
+  }
+}
+ppBtn && (ppBtn.onclick = togglePlay);
+video.addEventListener("click", togglePlay);
+
+function fmtTime(s) {
+  s = Math.max(0, Math.floor(s));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
+function tabSrcNow() {
+  if (captureStart === null) return -1;
+  return (performance.now() - captureStart) / 1000 - state.delay - extraDelaySec;
+}
+
+async function startTabCapture() {
+  captureStream = await navigator.mediaDevices.getDisplayMedia({
+    video: { frameRate: 30 },
+    audio: {
+      // Silence the source tab locally while still capturing its audio —
+      // the viewer hears only the delayed VYBE player.
+      suppressLocalAudioPlayback: true,
+      echoCancellation: false, noiseSuppression: false, autoGainControl: false,
+    },
+  });
+  if (captureStream.getAudioTracks().length === 0) {
+    alert("No audio shared — pick a Chrome TAB and tick 'Also share tab audio'.");
+    captureStream.getTracks().forEach(t => t.stop());
+    captureStream = null;
+    throw new Error("no tab audio");
+  }
+  captureStart = performance.now();
+
+  // Path 1: record for delayed playback.
+  const rec = new MediaRecorder(captureStream,
+    { mimeType: 'video/webm;codecs="vp8,opus"' });
+  rec.ondataavailable = (e) => { if (e.data.size) mediaChunks.push(e.data); };
+  rec.start(1000);
+
+  // Path 2: live PCM to the ingest WebSocket for ASR.
+  const ws = new WebSocket(`ws://${location.hostname}:8790`);
+  ws.binaryType = "arraybuffer";
+  liveCtx = new AudioContext({ sampleRate: 48000 });
+  const src = liveCtx.createMediaStreamSource(captureStream);
+  const proc = liveCtx.createScriptProcessor(4096, 2, 1);
+  const mute = liveCtx.createGain(); mute.gain.value = 0;
+  src.connect(proc); proc.connect(mute); mute.connect(liveCtx.destination);
+  proc.onaudioprocess = (e) => {
+    if (ws.readyState !== WebSocket.OPEN) return;
+    const L = e.inputBuffer.getChannelData(0);
+    const R = e.inputBuffer.numberOfChannels > 1 ? e.inputBuffer.getChannelData(1) : L;
+    const out = new Int16Array(Math.floor(L.length / 3)); // 48k -> 16k
+    for (let i = 0; i < out.length; i++) {
+      const j = i * 3;
+      const mono = (L[j] + R[j] + L[j+1] + R[j+1] + L[j+2] + R[j+2]) / 6;
+      out[i] = Math.max(-32768, Math.min(32767, mono * 32767));
+    }
+    ws.send(out.buffer);
+  };
+}
+
+function startDelayedPlayback() {
+  const mediaSource = new MediaSource();
+  video.src = URL.createObjectURL(mediaSource);
+  mediaSource.addEventListener("sourceopen", () => {
+    const sb = mediaSource.addSourceBuffer('video/webm; codecs="vp8,opus"');
+    setInterval(async () => {
+      if (sb.updating || mediaChunks.length === 0) return;
+      const blob = mediaChunks.shift();
+      try { sb.appendBuffer(await blob.arrayBuffer()); }
+      catch (e) { console.error("[vybe] append failed", e); }
+    }, 250);
+  });
+  video.play();
+}
+
+function srcNow() {
+  // Where the delayed viewer is on the source clock right now.
+  if (!state || !state.t0) return -1;
+  return (Date.now() / 1000 + clockOffset) - state.t0 - state.delay - extraDelaySec;
+}
+
+function buildAudioGraph() {
+  ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const src = ctx.createMediaElementSource(video);
+
+  // Original bus: source audio untouched.
+  gainOriginal = ctx.createGain();
+  src.connect(gainOriginal).connect(ctx.destination);
+
+  // VYBE bed bus: browser-side center-cancellation (L-R), same math as
+  // the FFmpeg filter. Kills the centered commentator, keeps the crowd.
+  const splitter = ctx.createChannelSplitter(2);
+  const inverted = ctx.createGain(); inverted.gain.value = -1;
+  const side = ctx.createGain();
+  src.connect(splitter);
+  splitter.connect(side, 0);
+  splitter.connect(inverted, 1);
+  inverted.connect(side);
+  gainBed = ctx.createGain();
+  gainBed.gain.value = 0;
+  side.connect(gainBed).connect(ctx.destination);
+
+  // Commentary bus.
+  gainVoice = ctx.createGain();
+  gainVoice.gain.value = 0;
+  gainVoice.connect(ctx.destination);
+
+  gainOriginal.gain.value = 1;
+}
+
+function setMode(next) {
+  mode = next;
+  const t = ctx.currentTime, RAMP = 0.15;
+  const target = (g, v) => { g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(v, t + RAMP); };
+  if (next === "vybe") {
+    target(gainOriginal, 0); target(gainBed, BED_GAIN); target(gainVoice, 1);
+  } else {
+    target(gainOriginal, 1); target(gainBed, 0); target(gainVoice, 0);
+  }
+  modeLabel.textContent = "mode: " + (next === "vybe" ? "Kabir" : "original");
+  document.getElementById("btnOriginal").classList.toggle("active", next === "original");
+  document.getElementById("btnKabir").classList.toggle("active", next === "vybe");
+}
+
+async function scheduleSegments() {
+  if (!state || !ctx) return;
+  const now = video.currentTime;
+  for (const seg of state.segments) {
+    if (scheduled.has(seg.url)) continue;
+    const dt = seg.anchor - now;
+    if (dt > 10) continue;                 // schedule when close
+    scheduled.add(seg.url);
+    if (dt < -seg.duration) continue;      // fully missed
+    try {
+      const buf = await (await fetch(seg.url)).arrayBuffer();
+      const decoded = await ctx.decodeAudioData(buf);
+      const node = ctx.createBufferSource();
+      node.buffer = decoded;
+      node.connect(gainVoice);
+      const lead = seg.anchor - video.currentTime;   // recompute after decode
+      if (lead >= 0) node.start(ctx.currentTime + lead);
+      else node.start(ctx.currentTime, -lead);       // join mid-line
+      console.log(`[vybe] scheduled anchor=${seg.anchor}s lead=${lead.toFixed(2)}s`);
+      const showIn = Math.max(0, lead) * 1000;
+      setTimeout(() => { caption.textContent = seg.text; }, showIn);
+    } catch (e) { console.error("[vybe] schedule failed", seg.url, e); }
+  }
+}
+
+let videoReady = false;
+function initVideo() {
+  if (videoReady || !state) return;
+  if (state.video_type === "hls" && window.Hls && Hls.isSupported()) {
+    // Event playlist keeps every segment; huge sync windows stop hls.js
+    // from dragging playback to the live edge — the delay is the product.
+    const hls = new Hls({ startPosition: 0, liveSyncDuration: 100000,
+                          liveMaxLatencyDuration: 200000, maxBufferLength: 60 });
+    hls.loadSource(state.video);
+    hls.attachMedia(video);
+  } else {
+    video.src = state.video;
+  }
+  videoReady = true;
+}
+
+function currentSrcNow() {
+  return (state && state.video_type === "tab") ? tabSrcNow() : srcNow();
+}
+
+startBtn.onclick = async () => {
+  if (!state) return;
+  const tabMode = state.video_type === "tab";
+  if (tabMode) {
+    try { await startTabCapture(); } catch (e) { return; }
+  } else {
+    initVideo();
+  }
+  buildAudioGraph();
+  await ctx.resume();
+  startBtn.style.display = "none";
+  let started = false;
+  const gate = setInterval(async () => {
+    const at = currentSrcNow();
+    if (at < 0) {
+      countdown.textContent = `VYBE starts in ${(-at).toFixed(0)}s — buffering the game`;
+      return;
+    }
+    if (started) return;
+    started = true;
+    clearInterval(gate);
+    overlay.style.display = "none";
+    if (tabMode) {
+      startDelayedPlayback();
+    } else {
+      video.currentTime = at;
+      await video.play();
+    }
+    bar.style.display = "flex";
+    setInterval(scheduleSegments, 500);
+    setInterval(() => {
+      if (isPaused) return;
+      barTime.textContent = fmtTime(video.currentTime);
+      barLag.textContent = `${Math.round(state.delay + extraDelaySec)}s behind live`;
+      clockLabel.textContent = `source t=${video.currentTime.toFixed(1)}s`;
+      // Gentle drift correction: keep within 0.4s of the delayed clock.
+      const drift = video.currentTime - currentSrcNow();
+      if (Math.abs(drift) > 0.4 && !video.paused && !isNaN(video.duration)) {
+        video.currentTime = Math.max(0, currentSrcNow());
+      }
+    }, 1000);
+  }, 250);
+};
+
+document.getElementById("btnOriginal").onclick = () => setMode("original");
+document.getElementById("btnKabir").onclick = () => setMode("vybe");
+</script>
+</body>
+</html>
