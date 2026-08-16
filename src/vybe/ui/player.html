@@ -123,7 +123,7 @@
   <div class="tagline">Same game. Your vibe.</div>
   <div class="grow"></div>
   <span class="badge-live" id="liveBadge">LIVE</span>
-  <span class="badge-delay" id="delayBadge">15s behind live</span>
+  <span class="badge-delay" id="delayBadge">Live streaming</span>
 </header>
 
 <main class="container">
@@ -184,8 +184,8 @@
       <div class="controlbar" id="bar">
         <button class="pp" id="ppBtn" title="Pause">&#10074;&#10074;</button>
         <span class="small" id="barTime" style="color:var(--white)">0:00</span>
-        <div class="strip" title="Live — VYBE runs a safety delay"></div>
-        <span class="small" style="color:var(--lime)" id="barLag">LIVE</span>
+        <div class="strip" title="Live streaming"></div>
+        <span class="small" style="color:var(--lime)" id="barLag">Live streaming</span>
         <img src="/ui/icons/speaker.png" alt="" style="width:20px;height:20px;object-fit:contain;opacity:.85">
         <input class="vol" id="vol" type="range" min="0" max="1" step="0.02" value="1" title="Volume">
         <button class="ctl" id="fsBtn" title="Fullscreen"><img src="/ui/icons/fullscreen.png" alt="⤢" style="width:20px;height:20px;object-fit:contain"></button>
@@ -228,7 +228,7 @@ async function poll() {
     const res = await fetch("/state");
     state = await res.json();
     clockOffset = state.server_now - Date.now() / 1000;
-    $("delayBadge").textContent = `${state.delay}s behind live`;
+    $("delayBadge").textContent = "Live streaming";
     $("segCount").textContent = `${state.segments.length} segments`;
     if (state.usage) {
       $("credits").textContent =
@@ -614,7 +614,7 @@ $("startBtn").onclick = async () => {
   setInterval(() => {
     if (isPaused) return;
     $("barTime").textContent = fmtTime(video.currentTime);
-    $("barLag").textContent = `${Math.round(state.delay + extraDelaySec)}s behind`;
+    $("barLag").textContent = "Live streaming";
     $("clock").textContent = `source t=${video.currentTime.toFixed(1)}s`;
     const drift = video.currentTime - currentSrcNow();
     if (Math.abs(drift) > 0.4 && !video.paused && !isNaN(video.duration)) {
