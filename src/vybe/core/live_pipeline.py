@@ -90,6 +90,10 @@ class LiveSession:
             "credit_alert": self.tts.billed_last(1800) > CREDIT_ALERT_30MIN,
             "tts_fit_retries": self.fit_retries,
             "tts_wasted_chars": self.tts_wasted,
+            # >1.5s means audio reaches ASR slower than real time: PCM
+            # loss or backlog -> anchors drift vs the video. Diagnostic.
+            "asr_ingest_lag": round(max(0.0, (time.time() - self.t0) - self.asr_seconds), 1)
+            if (self.t0 and self.asr_seconds) else 0.0,
         }
         if llm:
             report.update({

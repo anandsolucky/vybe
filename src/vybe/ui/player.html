@@ -159,6 +159,9 @@ async function poll() {
       document.getElementById("credits").textContent =
         `${state.usage.tts_billed_chars.toLocaleString()} credits this session` +
         ` · ${state.usage.tts_chars_30min.toLocaleString()} in 30 min`;
+      if (state.usage.asr_ingest_lag > 1.5) {
+        console.warn(`[vybe] ASR ingest lag ${state.usage.asr_ingest_lag}s — PCM loss/backlog, anchors may drift`);
+      }
     }
     if (state.video_type === "tab" && !captureStream) {
       startBtn.textContent = "CAPTURE TAB";
@@ -258,17 +261,62 @@ async function startTabCapture() {
 
 video.addEventListener("waiting", () => console.warn("[vybe] video buffering/stall"));
 
+let sourceBuffer = null, initialSkew = null;
+
+function bufferedEnd() {
+  try {
+    return sourceBuffer && sourceBuffer.buffered.length
+      ? sourceBuffer.buffered.end(sourceBuffer.buffered.length - 1) : 0;
+  } catch (e) { return 0; }
+}
+
+// Media lost to append failures shifts later video EARLIER than its true
+// capture time. holeSkew measures it so anchors can be re-aligned.
+function holeSkew() {
+  if (initialSkew === null || captureStart === null) return 0;
+  const skew = (performance.now() - captureStart) / 1000 - bufferedEnd();
+  return Math.max(0, skew - initialSkew);
+}
+
 function startDelayedPlayback() {
   const mediaSource = new MediaSource();
   video.src = URL.createObjectURL(mediaSource);
   mediaSource.addEventListener("sourceopen", () => {
-    const sb = mediaSource.addSourceBuffer('video/webm; codecs="vp8,opus"');
+    sourceBuffer = mediaSource.addSourceBuffer('video/webm; codecs="vp8,opus"');
+    const sb = sourceBuffer;
     setInterval(async () => {
-      if (sb.updating || mediaChunks.length === 0) return;
-      const blob = mediaChunks.shift();
-      try { sb.appendBuffer(await blob.arrayBuffer()); }
-      catch (e) { console.error("[vybe] append failed", e); }
+      if (!sb || sb.updating) return;
+      // Evict played history: the quota that silently killed long
+      // sessions (append fail -> timeline hole -> desync).
+      if (sb.buffered.length && video.currentTime > 60 &&
+          sb.buffered.start(0) < video.currentTime - 45) {
+        try { sb.remove(0, video.currentTime - 40); return; } catch (e) {}
+      }
+      if (mediaChunks.length === 0) return;
+      const blob = mediaChunks[0];
+      try {
+        sb.appendBuffer(await blob.arrayBuffer());
+        mediaChunks.shift();               // consumed only on success
+      } catch (e) {
+        if (e.name === "QuotaExceededError") {
+          console.warn("[vybe] buffer quota hit — evicting history, retrying blob");
+          try { sb.remove(0, Math.max(0.1, video.currentTime - 30)); } catch (e2) {}
+        } else {
+          console.error("[vybe] append failed, blob dropped", e);
+          mediaChunks.shift();
+        }
+      }
     }, 250);
+    // Baseline skew (encoder latency) measured once, 6s in; growth
+    // beyond it = real timeline holes.
+    setTimeout(() => {
+      initialSkew = (performance.now() - captureStart) / 1000 - bufferedEnd();
+      console.log(`[vybe] baseline capture skew ${initialSkew.toFixed(2)}s`);
+    }, 6000);
+    setInterval(() => {
+      const h = holeSkew();
+      if (h > 0.75) console.warn(`[vybe] timeline holes: ${h.toFixed(2)}s — anchors re-aligned`);
+    }, 5000);
   });
   video.play();
 }
@@ -358,7 +406,10 @@ async function scheduleSegments() {
   const now = video.currentTime;
   for (const seg of state.segments) {
     if (scheduled.has(seg.url)) continue;
-    const dt = seg.anchor - now;
+    // Tab mode: correct the anchor for any video-timeline holes so the
+    // line lands on what is actually on screen.
+    const anchorV = (state.video_type === "tab") ? seg.anchor - holeSkew() : seg.anchor;
+    const dt = anchorV - now;
     // Short horizon: schedule at most 2s ahead, always relative to the
     // CURRENT video position. A video stall or drift-seek can then never
     // strand pre-scheduled audio out of sync.
@@ -378,7 +429,7 @@ async function scheduleSegments() {
       node.buffer = decoded;
       const segGain = ctx.createGain();
       node.connect(segGain).connect(gainVoice);
-      const lead = seg.anchor - video.currentTime;   // recompute after decode
+      const lead = anchorV - video.currentTime;      // recompute after decode
       const startAt = ctx.currentTime + Math.max(0, lead);
       // No conjoined voices: any line still playing when this one starts
       // gets a 120ms fade-out ending exactly at the new start.
