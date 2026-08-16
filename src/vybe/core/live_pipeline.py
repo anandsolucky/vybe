@@ -255,7 +255,7 @@ class LiveSession:
                 "anchor": seg.anchor, "slot_end": seg.slot_end,
                 "duration": round(duration, 2), "url": f"/media/{name}",
                 "text": seg.text, "english": seg.english, "lead": round(lead, 1),
-                "vybe": lane["id"],
+                "vybe": lane["id"], "lang": getattr(seg, "lang", "hi"),
             })
         with self.lock:
             lane["prev_text"] = (lane["prev_text"] + " " + seg.text)[-500:]
@@ -449,6 +449,7 @@ class LiveSession:
                 processed = i + 1
                 seg = lane["director"].segment_for(view, i)
                 if seg:
+                    seg.lang = lane["director"].language
                     tts_pool.submit(self._render_and_publish, seg, lane)
                 else:
                     print(f"[director] [{lane['id']}] skip beat at {beats[i].start:.2f}s")

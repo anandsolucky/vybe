@@ -159,6 +159,21 @@
   .chip-lang.off { border-color: var(--line); color: var(--grey); }
   .chip-lang.off:hover { border-color: var(--violet); color: var(--white); }
   .chip-lang .spin { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--slate-2); border-top-color: var(--lime); animation: spin 1s linear infinite; }
+  /* fullscreen chrome */
+  .fs-only { display: none !important; }
+  .stage:fullscreen .fs-only, .stage:-webkit-full-screen .fs-only { display: flex !important; }
+  .fs-logo { position: absolute; top: 18px; left: 18px; height: 38px; opacity: .45; z-index: 20; pointer-events: none; }
+  .fs-chooser { position: absolute; top: 16px; right: 16px; z-index: 21; flex-direction: column; align-items: flex-end; gap: 10px; }
+  .fs-toggle { width: 46px; height: 46px; border-radius: 50%; background: rgba(23,23,31,.85); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .fs-toggle:hover { border-color: var(--violet); }
+  .fs-panel { background: rgba(10,10,15,.94); border: 1px solid var(--line); border-radius: 14px; padding: 16px; width: 330px; display: none; }
+  .fs-panel.open { display: block; animation: fadeUp .25s ease both; }
+  .fs-vybe { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; border: 1px solid transparent; cursor: pointer; transition: all .15s ease; }
+  .fs-vybe:hover { background: var(--slate-2); }
+  .fs-vybe.active { border-color: var(--lime); }
+  .fs-vybe.queued { animation: pulseRing 1.4s ease-in-out infinite; border-radius: 10px; }
+  .fs-vybe .thumb { width: 34px; height: 34px; border-radius: 50%; overflow: hidden; flex: none; }
+  .fs-vybe .thumb img { width: 100%; height: 100%; object-fit: cover; }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 </head>
@@ -227,13 +242,23 @@
   <section id="s3" class="screen">
     <div class="stage" id="stage">
       <video id="video" playsinline preload="auto"></video>
+      <img class="fs-logo fs-only" src="/ui/logo.png" alt="">
+      <div class="fs-chooser fs-only">
+        <div class="fs-toggle" id="fsChooserBtn"><img src="/ui/icons/switcher.png" alt="Switch" style="width:24px;height:24px;object-fit:contain"></div>
+        <div class="fs-panel" id="fsPanel">
+          <div class="small" style="letter-spacing:1.5px;font-weight:600">LANGUAGE</div>
+          <div class="row" style="margin:8px 0 14px;flex-wrap:wrap" id="fsLangs"></div>
+          <div class="small" style="letter-spacing:1.5px;font-weight:600;margin-bottom:6px">YOUR VYBE</div>
+          <div id="fsVybes"></div>
+        </div>
+      </div>
       <div class="cc" id="caption"></div>
       <div class="controlbar" id="bar">
         <button class="pp" id="ppBtn" title="Pause">&#10074;&#10074;</button>
         <span class="small" id="barTime" style="color:var(--white)">0:00</span>
         <div class="strip" title="Live streaming"></div>
         <span class="small" style="color:var(--lime)" id="barLag">Live streaming</span>
-        <button class="ctl ccbtn active" id="ccBtn" title="Captions"><img src="/ui/icons/translate.png" alt="CC" style="width:20px;height:20px;object-fit:contain"></button>
+        <button class="ctl ccbtn active" id="ccBtn" title="Captions"><img src="/ui/icons/cc.png" alt="CC" style="width:20px;height:20px;object-fit:contain"></button>
         <img src="/ui/icons/speaker.png" alt="" style="width:20px;height:20px;object-fit:contain;opacity:.85">
         <input class="vol" id="vol" type="range" min="0" max="1" step="0.02" value="1" title="Volume">
         <button class="ctl" id="fsBtn" title="Fullscreen"><img src="/ui/icons/fullscreen.png" alt="⤢" style="width:20px;height:20px;object-fit:contain"></button>
@@ -260,8 +285,10 @@ let ctx, gainOriginal, gainBed, gainVoice, gainDuck, gainMaster, sideAnalyser, m
 let scheduled = new Set(), activeNodes = [];
 let bedIsMono = false, newestAnchorStarted = -1;
 let mode = "original", playbackStarted = false;
-let secondVybe = null;        // optional second lane (max 2 with primary)
-let activeVybeId = null;      // which lane is audible in vybe mode
+let activeVybeId = null;      // which lane is AUDIBLE right now
+let activeLang = "hi";        // which language is AUDIBLE right now
+let pendingVybe = null;       // queued until actually heard
+let pendingLang = null;       // queued until actually heard
 let ccOn = true;
 const BED_GAIN = 1.2, DUCK_BED = 0.30, DUCK_TALK = 0.06;
 let captureStream = null, captureStart = null, pcmStart = null, mediaChunks = [], liveCtx;
@@ -291,9 +318,8 @@ async function poll() {
       if (state.usage.asr_ingest_lag > 1.5)
         console.warn(`[vybe] ASR ingest lag ${state.usage.asr_ingest_lag}s`);
     }
-    $("topbar").classList.toggle("on", !!(state.queued_vybe || state.queued_language));
+    $("topbar").classList.toggle("on", !!(pendingVybe || pendingLang));
     if (!bootDone) boot();
-    else { renderLangs("langsPick"); renderLangs("langsPlay"); if (playbackStarted) renderRail(); }
   } catch (e) { /* server restarting */ }
   setTimeout(poll, 1000);
 }
@@ -301,8 +327,7 @@ let bootDone = false;
 function boot() {
   bootDone = true;
   renderPicker();
-  renderLangs("langsPick");
-  renderLangs("langsPlay");
+  renderAllChoosers();
   if (state.video_type === "tab") show("s0");
   else { show("s2"); }
   setInterval(updateBuffer, 300);
@@ -327,24 +352,69 @@ function toast(msg) {
 function renderLangs(containerId) {
   const el = $(containerId);
   if (!el) return;
-  const active = (state && state.language) || "hi";
-  const queued = state && state.queued_language;
+  const active = activeLang;
+  const queued = pendingLang;
   el.innerHTML = LANGS.map(l => {
     const isActive = l.code === active, isQueued = l.code === queued;
     return `<span class="chip-lang${isActive ? "" : " off"}${isQueued ? " queued" : ""}" data-lang="${l.code}">
       ${l.native} <span class="en-name">(${l.en})</span>${isQueued ? '<span class="spin"></span>' : ""}</span>`;
   }).join("");
   for (const c of el.querySelectorAll("[data-lang]")) {
-    c.onclick = async () => {
-      const code = c.dataset.lang;
-      if (code === ((state && state.language) || "hi") || code === (state && state.queued_language)) return;
-      const res = await fetch("/language", { method: "POST", body: code });
-      if (res.ok) {
-        state.queued_language = code;
-        const lang = LANGS.find(x => x.code === code);
-        toast(`${lang.native} incoming — your VYBE switches language in a moment`);
-        renderLangs("langsPick"); renderLangs("langsPlay");
-      }
+    c.onclick = () => requestLang(c.dataset.lang);
+  }
+}
+
+async function requestLang(code) {
+  if (code === activeLang || code === pendingLang) return;
+  const res = await fetch("/language", { method: "POST", body: code });
+  if (res.ok) {
+    pendingLang = code;
+    $("topbar").classList.add("on");
+    const lang = LANGS.find(x => x.code === code);
+    toast(`${lang.native} incoming — your VYBE is switching language`);
+    renderAllChoosers();
+  }
+}
+
+async function requestVybe(id) {
+  const current = activeVybeId || state.avatar_id;
+  if (id === current || id === pendingVybe) return;
+  const res = await fetch("/switch", { method: "POST", body: id });
+  if (res.ok) {
+    pendingVybe = id;
+    $("topbar").classList.add("on");
+    const v = (state.avatars || []).find(a => a.id === id);
+    toast(`${v ? v.name : id} is warming up — takes the mic shortly`);
+    renderAllChoosers();
+  }
+}
+
+function renderAllChoosers() {
+  renderLangs("langsPick"); renderLangs("langsPlay"); renderLangs("fsLangs");
+  if (playbackStarted) { renderRail(); renderFsVybes(); }
+}
+
+function renderFsVybes() {
+  const el = $("fsVybes");
+  if (!el) return;
+  const items = [{ id: "original", name: "Original", image: "/brand/generated/waveform-emblem.png" }]
+    .concat(state.avatars || []);
+  el.innerHTML = items.map(v => {
+    const active = (v.id === "original" && mode === "original") ||
+                   (mode === "vybe" && v.id === (activeVybeId || state.avatar_id));
+    const q = v.id === pendingVybe;
+    return `<div class="fs-vybe${active ? " active" : ""}${q ? " queued" : ""}" data-fsv="${v.id}">
+      <div class="thumb"><img src="${v.image || ""}"></div>
+      <b style="font-size:14px">${v.name}</b>
+      ${q ? '<span class="small" style="margin-left:auto">warming up…</span>' : ""}
+    </div>`;
+  }).join("");
+  for (const r of el.querySelectorAll("[data-fsv]")) {
+    r.onclick = () => {
+      const id = r.dataset.fsv;
+      if (id === "original") { setMode("original"); renderAllChoosers(); return; }
+      setMode("vybe");
+      requestVybe(id);
     };
   }
 }
@@ -630,9 +700,26 @@ async function scheduleSegments() {
       newestAnchorStarted = Math.max(newestAnchorStarted, seg.anchor);
       activeNodes.push({ startAt, dur: decoded.duration, node, gain: segGain, anchor: seg.anchor });
       const laneId = seg.vybe || state.avatar_id;
-      setTimeout(() => { if (activeVybeId !== laneId) { activeVybeId = laneId; renderRail();
-        $("modeLabel").textContent = mode === "vybe" ? "mode: " + laneId : "mode: original"; } },
-        Math.max(0, lead) * 1000);
+      const segLang = seg.lang || "hi";
+      setTimeout(() => {
+        let changed = false;
+        if (activeVybeId !== laneId) { activeVybeId = laneId; changed = true; }
+        if (activeLang !== segLang) { activeLang = segLang; changed = true; }
+        if (pendingVybe === laneId) {
+          pendingVybe = null; changed = true;
+          const v = (state.avatars || []).find(a => a.id === laneId);
+          toast(`🎙 ${v ? v.name : laneId} is LIVE`);
+        }
+        if (pendingLang === segLang) {
+          pendingLang = null; changed = true;
+          const l = LANGS.find(x => x.code === segLang);
+          toast(`🎙 ${l ? l.native : segLang} is LIVE`);
+        }
+        if (changed) {
+          $("modeLabel").textContent = mode === "vybe" ? "mode: " + laneId : "mode: original";
+          renderAllChoosers();
+        }
+      }, Math.max(0, lead) * 1000);
       while (activeNodes.length > 8) activeNodes.shift();
       if (bedIsMono && mode === "vybe") {
         const g = gainDuck.gain;
@@ -678,6 +765,7 @@ $("startBtn").onclick = async () => {
   }
   activeVybeId = state.avatar_id;
   setMode("vybe");
+  renderAllChoosers();
   setInterval(scheduleSegments, 500);
   setInterval(() => {
     if (isPaused) return;
@@ -694,7 +782,7 @@ $("startBtn").onclick = async () => {
 
 /* ---------------- rail ---------------- */
 function renderRail() {
-  const queued = state.queued_vybe || null;
+  const queued = pendingVybe;
   const items = [{ id: "original", name: "Original", label: "Official feed",
                    image: "/brand/generated/waveform-emblem.png" }]
     .concat(state.avatars || []);
@@ -714,21 +802,12 @@ function renderRail() {
     </div>`;
   }).join("");
   for (const el of document.querySelectorAll(".mini-card")) {
-    el.onclick = async () => {
+    el.onclick = () => {
       const id = el.dataset.id;
       if (el.dataset.locked === "true") return;
-      if (id === "original") { setMode("original"); return; }
+      if (id === "original") { setMode("original"); renderAllChoosers(); return; }
       setMode("vybe");
-      const current = activeVybeId || state.avatar_id;
-      if (id !== current && id !== state.queued_vybe) {
-        const res = await fetch("/switch", { method: "POST", body: id });
-        if (res.ok) {
-          state.queued_vybe = id;
-          const v = (state.avatars || []).find(a => a.id === id);
-          toast(`${v ? v.name : id} is warming up — takes the mic in a moment`);
-          renderRail();
-        }
-      }
+      requestVybe(id);
     };
   }
 }
@@ -757,6 +836,11 @@ async function togglePlay() {
 $("ppBtn").onclick = togglePlay;
 video.addEventListener("click", togglePlay);
 $("vol").oninput = () => { if (gainMaster) gainMaster.gain.value = parseFloat($("vol").value); };
+$("fsChooserBtn").onclick = () => {
+  $("fsPanel").classList.toggle("open");
+  renderLangs("fsLangs");
+  renderFsVybes();
+};
 $("ccBtn").onclick = () => {
   ccOn = !ccOn;
   $("ccBtn").classList.toggle("active", ccOn);
