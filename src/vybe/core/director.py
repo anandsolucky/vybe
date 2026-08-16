@@ -73,8 +73,13 @@ loudness, and pace changes.
 2. INTENSITY TRACKS THE ACTION. As the ball climbs, you climb:
    [excited] for the lift, [shouts] at the peak. After the peak comes a
    human release: [laughs], [chuckles], [sighs]. A near-miss gets
-   [gasps]. Place each tag immediately before the words it colors; a tag
-   carries only the next few words, so re-tag inside long lines.
+   [gasps]. A tag colors ONLY the next few words — so any line longer
+   than ~8 words MUST carry two or more tags, with the shift placed
+   mid-line exactly where the emotion turns:
+     "[excited] Ball हवा में है — [shouts] ये लंबाआआ है… SIIIIX!"
+     "[shouts] CAUGHT! क्या catch है — [laughs] यक़ीन नहीं होता!"
+   Combine tags for layered color when it fits: [shouts, laughing],
+   [sighs, disappointed], [gasps] … [whispers] nahi…
 3. STRETCH WORDS when the moment hangs in the air. Elongate in the text
    itself: "ये गई, गईईईई…", "ये loooong है!", "SIIIIX!", "goooone!".
    Stretch trajectory and suspense words only — one or two stretches per
@@ -143,12 +148,18 @@ Reference of your voice (do not copy verbatim):
 {OUTPUT_RULES}"""
 
 
+HISTORY_BEATS = 10   # rolling context window: keeps prompts (and director
+HISTORY_LINES = 6    # latency) constant instead of growing all session
+
+
 def beat_prompt(beats: list[Beat], index: int, budget_words: int,
                 slot: float, previous_lines: list[tuple[float, str]]) -> str:
+    recent = beats[max(0, index - HISTORY_BEATS): index]
     history = "\n".join(
-        f"[t={b.start:.1f}-{b.end:.1f}] {b.text}" for b in beats[: index]
+        f"[t={b.start:.1f}-{b.end:.1f}] {b.text}" for b in recent
     ) or "(match just started)"
-    ours = "\n".join(f"[t={t:.1f}] {line}" for t, line in previous_lines) or "(none yet)"
+    ours = "\n".join(f"[t={t:.1f}] {line}"
+                     for t, line in previous_lines[-HISTORY_LINES:]) or "(none yet)"
     beat = beats[index]
     return f"""Source commentary so far (English, timestamped):
 {history}
@@ -212,6 +223,7 @@ class Director:
             text = reply["text"].strip()
 
         anchor = beats[index].start
+        text = enforce_delivery(text)
         self.previous.append((anchor, text))
         return DeliverySegment(text=text, anchor=anchor, slot_end=anchor + slot,
                                english=reply.get("english", "").strip())
@@ -230,3 +242,25 @@ class Director:
 def spoken_words(text: str) -> int:
     """Word count excluding audio tags."""
     return len(re.sub(r"\[[^\]]+\]", " ", text).split())
+
+
+def enforce_delivery(text: str) -> str:
+    """Deterministic repair: long lines need a mid-line tag shift.
+
+    A tag colors ~4-5 words. If the LLM shipped a long line with fewer
+    than two tags, inject an escalation tag at the last natural break so
+    the back half of the line does not render flat.
+    """
+    tags = re.findall(r"\[[^\]]+\]", text)
+    if spoken_words(text) <= 8 or len(tags) >= 2:
+        return text
+    cut = max(text.rfind(" — "), text.rfind("— "), text.rfind(". "),
+              text.rfind("! "), text.rfind("। "))
+    if cut <= len(text) * 0.3:
+        return text
+    head, tail = text[: cut + 2], text[cut + 2:]
+    if not tail.strip():
+        return text
+    hot = "!" in tail and any(c.isupper() for c in tail if c.isalpha())
+    tag = "[shouts] " if hot else "[excited] "
+    return head + tag + tail

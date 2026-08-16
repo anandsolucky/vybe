@@ -13,7 +13,7 @@ engine_config:
   voice_id: 7qBNUtXRGP0jPi0H4r8k    # user-picked library voice (paid plan)
   fallback_voice_id: onwK4e9ZLuTAKqWW03F9  # Daniel — premade broadcast anchor
   voice_settings:
-    stability: 0.5                  # Natural — controlled, still tag-responsive
+    stability: 0.0                  # Creative — user: too robotic at 0.5; composure comes from the writing
     speed: 1.0
 speaking_rate_wps: 2.8              # provisional; calibrate on first renders
 

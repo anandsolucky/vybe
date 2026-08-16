@@ -253,6 +253,8 @@ async function startTabCapture() {
   };
 }
 
+video.addEventListener("waiting", () => console.warn("[vybe] video buffering/stall"));
+
 function startDelayedPlayback() {
   const mediaSource = new MediaSource();
   video.src = URL.createObjectURL(mediaSource);
@@ -323,7 +325,10 @@ async function scheduleSegments() {
   for (const seg of state.segments) {
     if (scheduled.has(seg.url)) continue;
     const dt = seg.anchor - now;
-    if (dt > 10) continue;                 // schedule when close
+    // Short horizon: schedule at most 2s ahead, always relative to the
+    // CURRENT video position. A video stall or drift-seek can then never
+    // strand pre-scheduled audio out of sync.
+    if (dt > 2) continue;
     scheduled.add(seg.url);
     if (dt < -seg.duration) continue;      // fully missed
     try {
@@ -425,6 +430,7 @@ startBtn.onclick = async () => {
       // Gentle drift correction: keep within 0.4s of the delayed clock.
       const drift = video.currentTime - currentSrcNow();
       if (Math.abs(drift) > 0.4 && !video.paused && !isNaN(video.duration)) {
+        console.warn(`[vybe] drift ${drift.toFixed(2)}s — reseeking to delayed clock`);
         video.currentTime = Math.max(0, currentSrcNow());
       }
     }, 1000);
