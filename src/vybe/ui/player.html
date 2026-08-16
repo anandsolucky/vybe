@@ -114,6 +114,9 @@
 </style>
 </head>
 <body>
+<div style="position:fixed;inset:0;z-index:-1;background:
+  linear-gradient(rgba(10,10,15,.82), rgba(10,10,15,.96)),
+  url('/brand/generated/hero-stadium.png') center/cover no-repeat var(--black)"></div>
 <header class="app">
   <img class="logo" src="/ui/logo.png" alt="VYBE"
        onerror="this.outerHTML='<div class=fallback-logo>VYBE</div>'">
@@ -128,17 +131,18 @@
   <!-- S0 — zero state -->
   <section id="s0" class="screen">
     <div class="card hero">
-      <div class="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <img src="/brand/generated/share-tab-illo.png" alt=""
+           style="width:240px;border-radius:14px;margin-bottom:16px">
       <h1>Let's get the game on <span class="accent">VYBE</span></h1>
       <div class="sub">To bring you live commentary in your vibe,<br>we need access to the live stream.</div>
       <div class="rows">
-        <div class="row"><div class="dot"><div class="wave still" style="height:14px"><i></i><i></i><i></i></div></div>
+        <div class="row"><div class="dot"><img src="/ui/icons/tv.png" alt="" style="width:20px;height:20px;object-fit:contain"></div>
           <div><b>Share the tab where the match is playing</b>
           <span>Hotstar, JioCinema, YouTube or any other platform.</span></div></div>
-        <div class="row"><div class="dot"><div class="wave" style="height:14px"><i></i><i></i><i></i></div></div>
+        <div class="row"><div class="dot"><img src="/ui/icons/mic.png" alt="" style="width:20px;height:20px;object-fit:contain"></div>
           <div><b>We'll read the audio in real time</b>
           <span>Your commentary arrives in the vibe you choose.</span></div></div>
-        <div class="row"><div class="dot"><div class="wave still" style="height:14px"><i></i><i></i><i></i></div></div>
+        <div class="row"><div class="dot"><img src="/ui/icons/shield.png" alt="" style="width:20px;height:20px;object-fit:contain"></div>
           <div><b>Your privacy is our priority</b>
           <span>We only access the tab audio. Nothing is recorded or stored.</span></div></div>
       </div>
@@ -182,8 +186,9 @@
         <span class="small" id="barTime" style="color:var(--white)">0:00</span>
         <div class="strip" title="Live — VYBE runs a safety delay"></div>
         <span class="small" style="color:var(--lime)" id="barLag">LIVE</span>
+        <img src="/ui/icons/speaker.png" alt="" style="width:20px;height:20px;object-fit:contain;opacity:.85">
         <input class="vol" id="vol" type="range" min="0" max="1" step="0.02" value="1" title="Volume">
-        <button class="ctl" id="fsBtn" title="Fullscreen">⤢</button>
+        <button class="ctl" id="fsBtn" title="Fullscreen"><img src="/ui/icons/fullscreen.png" alt="⤢" style="width:20px;height:20px;object-fit:contain"></button>
       </div>
     </div>
     <div class="rail" id="rail"></div>
@@ -274,7 +279,8 @@ function cardHTML(v) {
 function roster() {
   const list = [{
     id: "original", name: "Original Broadcast", label: "ORIGINAL",
-    blurb: "The official feed", quote: PLACEHOLDER_QUOTE, image: null,
+    blurb: "The official feed", quote: PLACEHOLDER_QUOTE,
+    image: "/brand/generated/waveform-emblem.png",
   }];
   for (const a of (state.avatars || [])) {
     list.push({
