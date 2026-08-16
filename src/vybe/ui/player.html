@@ -93,6 +93,7 @@
     <div class="bar" id="bar" style="display:none">
       <button class="pp" id="ppBtn" title="Pause">&#10074;&#10074;</button>
       <span class="t" id="barTime">0:00</span>
+      <span class="t" id="barTitle" style="opacity:.75"></span>
       <span class="lag" id="barLag"></span>
     </div>
   </div>
@@ -232,6 +233,14 @@ async function startTabCapture() {
     throw new Error("no tab audio");
   }
   captureStart = performance.now();
+
+  // The shared tab's title rides on the video track label in Chrome.
+  const rawLabel = captureStream.getVideoTracks()[0]?.label || "";
+  if (rawLabel && !/^(screen|window|web-contents|monitor)/i.test(rawLabel)) {
+    const title = rawLabel.replace(/ - (YouTube|Google Chrome).*$/i, "").trim();
+    document.getElementById("barTitle").textContent = title;
+    document.title = `VYBE — ${title}`;
+  }
 
   // Path 1: record for delayed playback.
   const rec = new MediaRecorder(captureStream,
