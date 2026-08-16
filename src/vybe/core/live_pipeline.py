@@ -211,6 +211,9 @@ class LiveSession:
                 processed = i + 1
                 if seg:
                     tts_pool.submit(self._render_and_publish, seg)
+                else:
+                    print(f"[director] skip beat at {beats[i].start:.2f}s "
+                          f"({beats[i].text[:50]!r})")
 
         # Stream ended: close out any beats the watchdog never reached.
         beats = beats_from_words(all_words)
@@ -218,6 +221,8 @@ class LiveSession:
             seg = director.segment_for(beats, i)
             if seg:
                 tts_pool.submit(self._render_and_publish, seg)
+            else:
+                print(f"[director] skip beat at {beats[i].start:.2f}s")
         tts_pool.shutdown(wait=True)
 
     def run(self, llm=None) -> None:

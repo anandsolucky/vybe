@@ -17,6 +17,7 @@ from ..providers.base import DeliverySegment, Word
 from .avatars import Avatar
 
 BEAT_GAP = 0.8       # silence that separates two beats (seconds)
+MAX_BEAT_LEN = 7.0   # force-close a beat after this much continuous speech
 MAX_SLOT = 12.0      # cap a slot even when the source goes quiet
 TAIL_SLOT = 3.0      # slot for the final beat of a stream
 BUDGET_SAFETY = 0.85 # spend at most this share of the slot
@@ -33,11 +34,19 @@ class Beat:
         return " ".join(w.text for w in self.words)
 
 
-def beats_from_words(words: list[Word], gap: float = BEAT_GAP) -> list[Beat]:
+def beats_from_words(words: list[Word], gap: float = BEAT_GAP,
+                     max_len: float = MAX_BEAT_LEN) -> list[Beat]:
+    """Split on silence gaps — and force-split continuous speech.
+
+    TV commentators rarely pause 0.8 s. Without the max_len split, a long
+    stretch becomes one giant beat: it closes late and yields a single
+    capped line, so the avatar falls silent between rare anchors.
+    """
     beats: list[Beat] = []
     current: list[Word] = []
     for word in words:
-        if current and word.start - current[-1].end > gap:
+        if current and (word.start - current[-1].end > gap
+                        or word.end - current[0].start > max_len):
             beats.append(Beat(current[0].start, current[-1].end, current))
             current = []
         current.append(word)
@@ -53,7 +62,10 @@ it naturally. Never invent facts the transcript does not support."""
 
 OUTPUT_RULES = """Reply with STRICT JSON only, no code fences:
 {"skip": false, "text": "..."}  — one commentary line for the new beat
-{"skip": true}                  — say nothing for this beat (low-energy filler)"""
+{"skip": true}                  — say nothing for this beat
+Skip only when the beat truly has nothing (dead air, pure repetition of
+what you just said). A live commentator keeps the mic warm — when in
+doubt, speak."""
 
 
 def system_prompt(avatar: Avatar) -> str:
