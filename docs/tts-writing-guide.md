@@ -1,5 +1,18 @@
 # TTS writing guide — text as performance script
 
+> **2026-08-16 — ElevenLabs v3 is the production engine.** The universal
+> performance grammar now lives as the DELIVERY LAYER in
+> `src/vybe/core/director.py` and applies to every avatar: fast live
+> baseline ([slow] is a rare, deliberate storytelling tool), intensity
+> ladder [excited] → [shouts] with human release ([laughs] / [chuckles]
+> / [sighs] / [gasps]), word stretches on suspense words ("गईईईई",
+> "loooong", "SIIIIX!"), CAPS + exclamation on English peak words, and
+> tags re-applied every few words since each carries only the next few.
+> Avatars differ only via `delivery_mix` in their YAML — how often, how
+> strongly, in what sequence. The Bulbul-era rules below remain for that
+> adapter; their core lesson (ellipsis = hesitation → calm moments only)
+> still applies everywhere.
+
 Bulbul v3 infers emotion from the meaning of the text. The text is the
 prompt. This guide defines how commentary text must be written. The LLM
 system prompt encodes these rules; the avatar persona sits on top.
