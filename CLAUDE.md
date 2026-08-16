@@ -42,8 +42,14 @@ Slice 5. Even interim UI copy must already use brand vocabulary.
   config and a calibrated `speaking_rate_wps`.
 - Keys in `.env`: `DEEPGRAM_API_KEY`, `ELEVENLABS_API_KEY`,
   `SARVAM_API_KEY`, `LLM_BASE_URL`/`LLM_API_KEY`/`LLM_MODEL`.
-  ElevenLabs is on the Free plan: premade voices only via API; keep TTS
-  test runs to ~6 calls unless the user approves more.
+  ElevenLabs: **Creator plan** (2026-08-16), 121K credits/month; library
+  voices unlocked (Jatin + Naina run their real voices).
+- **TTS testing budget policy (user rule, strict):** state the estimated
+  credit cost BEFORE any test. Up to ~200 credits: proceed. Around 1,000
+  credits or more: get the user's approval first. Prefer short tests.
+  Never run long or repeated renders "just to see". The pipeline alerts
+  when the trailing 30 minutes bill over 15K credits
+  (`CREDIT_ALERT_30MIN` in `core/live_pipeline.py`).
 - Python 3 + `.venv`, stdlib-first, minimal dependencies. FFmpeg for all
   media work.
 - Write docs, commits, and comments in plain technical English (short

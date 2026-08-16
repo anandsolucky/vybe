@@ -140,7 +140,13 @@ async function poll() {
     const res = await fetch("/state");
     state = await res.json();
     clockOffset = state.server_now - Date.now() / 1000;
-    liveBadge.textContent = `${state.delay}s behind live`;
+    if (state.usage && state.usage.credit_alert) {
+      liveBadge.textContent = `⚠ ${state.usage.tts_chars_30min.toLocaleString()} credits / 30 min`;
+      liveBadge.style.color = "#ff5d5d";
+    } else {
+      liveBadge.textContent = `${state.delay}s behind live`;
+      liveBadge.style.color = "";
+    }
     segCount.textContent = `${state.segments.length} segments`;
     document.getElementById("btnKabir").textContent = state.avatar;
     if (state.video_type === "tab" && !captureStream) {

@@ -26,6 +26,9 @@ ASR_RATE = 16000
 DEADLINE_MARGIN = 0.5   # seconds of slack required at publish time
 WATCHDOG_SILENCE = 2.5  # wall seconds without words before closing a beat
 
+CREDIT_ALERT_30MIN = 15_000  # user threshold: highlight when the trailing
+                             # 30 minutes bill more than this many credits
+
 # Reference rates for the cost report (checked 2026-08-16; adjust in one place).
 DEEPGRAM_USD_PER_MIN = 0.0077          # Nova-3 streaming
 ELEVEN_USD_PER_1K_CHARS = 0.10         # measured from dashboard 2026-08-16 (1,540 chars = $0.154)
@@ -79,6 +82,8 @@ class LiveSession:
             "tts_billed_chars": self.tts.billed_chars,
             "tts_cached_chars": self.tts.cached_chars,
             "tts_usd_est": round(self.tts.billed_chars / 1000 * ELEVEN_USD_PER_1K_CHARS, 3),
+            "tts_chars_30min": self.tts.billed_last(1800),
+            "credit_alert": self.tts.billed_last(1800) > CREDIT_ALERT_30MIN,
         }
         if llm:
             report.update({
@@ -119,6 +124,11 @@ class LiveSession:
                 "text": seg.text, "lead": round(lead, 1),
             })
         print(f"[pipeline] published anchor={seg.anchor:6.2f}s lead={lead:4.1f}s  {seg.text[:60]}")
+        burn = self.tts.billed_last(1800)
+        if burn > CREDIT_ALERT_30MIN and not getattr(self, "_credit_alerted", False):
+            self._credit_alerted = True
+            print(f"[cost] ⚠⚠⚠ HIGH BURN: {burn:,} credits in the last 30 minutes "
+                  f"(threshold {CREDIT_ALERT_30MIN:,}) ⚠⚠⚠")
 
     TTS_ESTIMATE = 3.5  # seconds a render usually takes (measured 3.3)
 

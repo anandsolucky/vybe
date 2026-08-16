@@ -5,7 +5,7 @@ id: naina
 name: Naina
 description: Bombay girl — Gen-Z but articulate; rich vocabulary, expressive emotion, clean delivery with big genuine reactions.
 language: hi-IN
-status: locked-dormant
+status: active   # real library voice unlocked 2026-08-16 (Creator plan)
 
 engine: elevenlabs
 engine_config:

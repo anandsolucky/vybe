@@ -5,7 +5,7 @@ id: jatin
 name: Jatin
 description: Mature professional commentator — polish, class, and calm authority; the Jatin Sapru school of broadcast.
 language: hi-IN
-status: locked-dormant
+status: active   # real library voice unlocked 2026-08-16 (Creator plan)
 
 engine: elevenlabs
 engine_config:

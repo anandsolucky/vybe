@@ -27,6 +27,7 @@ class ElevenLabsTTS:
         self.model_id = model_id
         self.billed_chars = 0   # cache misses — these consume credits
         self.cached_chars = 0   # cache hits — free
+        self.billed_events: list[tuple[float, int]] = []  # (timestamp, chars)
 
     def render(self, text: str, speed: float | None = None) -> bytes:
         # Cache on the full voice recipe: identical requests never bill twice.
@@ -39,6 +40,8 @@ class ElevenLabsTTS:
             self.cached_chars += len(text)
             return cache_path.read_bytes()
         self.billed_chars += len(text)
+        import time
+        self.billed_events.append((time.time(), len(text)))
 
         url = (f"https://api.elevenlabs.io/v1/text-to-speech/{self.voice_id}"
                f"?output_format=mp3_44100_128")
@@ -65,6 +68,12 @@ class ElevenLabsTTS:
         CACHE_DIR.mkdir(parents=True, exist_ok=True)
         cache_path.write_bytes(audio)
         return audio
+
+    def billed_last(self, window_seconds: float = 1800) -> int:
+        """Credits billed inside the trailing window (default 30 min)."""
+        import time
+        cutoff = time.time() - window_seconds
+        return sum(chars for ts, chars in self.billed_events if ts >= cutoff)
 
     def render_fit(self, text: str, slot: float, decode, rate: int):
         """Render text to fit a slot. decode(mp3_bytes) -> sample array.
