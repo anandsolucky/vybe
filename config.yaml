@@ -2,7 +2,7 @@
 delay_seconds: 15
 sample_rate: 44100
 default_language: hi
-default_avatar: jatin   # next runs: Jatin only (budget decision 2026-08-16)
+default_avatar: naina   # user 2026-08-17: Naina is the best — she leads by default
 
 providers:
   asr: deepgram
