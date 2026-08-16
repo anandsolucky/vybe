@@ -28,7 +28,7 @@ WATCHDOG_SILENCE = 2.5  # wall seconds without words before closing a beat
 
 # Reference rates for the cost report (checked 2026-08-16; adjust in one place).
 DEEPGRAM_USD_PER_MIN = 0.0077          # Nova-3 streaming
-ELEVEN_USD_PER_1K_CHARS = 0.18         # effective Creator-plan rate; Free = credits
+ELEVEN_USD_PER_1K_CHARS = 0.10         # measured from dashboard 2026-08-16 (1,540 chars = $0.154)
 LLM_USD_PER_M_IN = 0.25                # mini-tier estimate; see provider pricing
 LLM_USD_PER_M_OUT = 2.00
 
