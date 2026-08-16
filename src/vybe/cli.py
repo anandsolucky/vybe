@@ -179,6 +179,8 @@ def play(args: list[str]) -> int:
         input_path = f"screen:{video_idx}:{audio_idx}"
         print(f"screen capture: video={video_idx} audio={audio_idx} (BlackHole)")
     for i, arg in enumerate(args):
+        if arg == "--avatar" and i + 1 < len(args):
+            avatar_id = args[i + 1]
         if arg == "--replay" and i + 1 < len(args):
             from .providers.base import DeliverySegment
             data = jsonlib.loads((ROOT / args[i + 1]).read_text())
