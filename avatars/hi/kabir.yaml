@@ -8,12 +8,12 @@ status: finalized
 engine: elevenlabs
 engine_config:
   model_id: eleven_v3
-  voice_id: Zh845mZcOk2fUoLpOzfD   # library voice under review 2026-08-16
+  voice_id: Zh845mZcOk2fUoLpOzfD   # APPROVED 2026-08-16 — won the shout test ('way better')
   fallback_voice_id: iP95p4xoKVk53GoZ742B  # "Chris" — previous approved voice
   voice_settings:
     stability: 0.0                 # Creative — maximum tag response
     speed: 1.1
-speaking_rate_wps: 3.2             # calibrated in the POC (ADR-015)
+speaking_rate_wps: 2.7             # recalibrated for the approved voice (slower than Chris)
 
 style:
   register: >
