@@ -175,6 +175,88 @@
   .fs-vybe.queued { animation: pulseRing 1.4s ease-in-out infinite; border-radius: 10px; }
   .fs-vybe .thumb { width: 34px; height: 34px; border-radius: 50%; overflow: hidden; flex: none; }
   .fs-vybe .thumb img { width: 100%; height: 100%; object-fit: cover; }
+  /* homepage */
+  #sHome .hero-wrap {
+    position: relative; min-height: 78vh; display: flex; align-items: center;
+    border-radius: 0 0 24px 24px; overflow: hidden; margin: 0 -20px;
+  }
+  #sHome .hero-wrap::before {
+    content: ""; position: absolute; inset: 0;
+    background: url('/ui/hero-virat.jpg') center/cover no-repeat;
+    z-index: -2;
+  }
+  #sHome .hero-wrap::after {
+    content: ""; position: absolute; inset: 0; z-index: -1;
+    background: linear-gradient(90deg, rgba(10,10,15,.92) 0%, rgba(10,10,15,.55) 45%, rgba(10,10,15,.15) 75%),
+                linear-gradient(rgba(10,10,15,.15), rgba(10,10,15,.75));
+  }
+  #sHome .hero-inner { padding: 60px 44px; max-width: 640px; }
+  .mega {
+    font-family: var(--font-display); font-weight: 700; font-style: italic;
+    text-transform: uppercase; line-height: 1.02; letter-spacing: .5px;
+    font-size: clamp(42px, 6.5vw, 78px);
+  }
+  .mega .grad { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hero-sub { color: var(--mist); font-size: 17px; margin-top: 18px; line-height: 1.55; }
+  .play-row { display: flex; align-items: center; gap: 18px; margin-top: 34px; }
+  .play-cta {
+    width: 86px; height: 86px; border-radius: 50%; cursor: pointer;
+    background: rgba(10,10,15,.55); position: relative; border: none;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform .18s ease, box-shadow .25s ease;
+  }
+  .play-cta::before {
+    content: ""; position: absolute; inset: -3px; border-radius: 50%;
+    background: var(--grad); z-index: -1;
+  }
+  .play-cta::after {
+    content: ""; width: 0; height: 0; margin-left: 6px;
+    border-left: 26px solid var(--white); border-top: 16px solid transparent;
+    border-bottom: 16px solid transparent;
+  }
+  .play-cta:hover { transform: scale(1.06); box-shadow: 0 0 44px rgba(216,255,62,.35); }
+  .play-note { font-family: var(--font-display); font-style: italic; color: var(--lime); font-size: 19px; line-height: 1.25; }
+  .combo {
+    background: rgba(23,23,31,.72); backdrop-filter: blur(14px);
+    border: 1px solid var(--line); border-radius: 20px;
+    padding: 26px; margin-top: -70px; position: relative; z-index: 2;
+    display: flex; gap: 34px; flex-wrap: wrap;
+  }
+  .combo .col { flex: 1; min-width: 300px; }
+  .combo .col-title { display: flex; align-items: center; gap: 9px; font-size: 13px; letter-spacing: 2px; font-weight: 600; margin-bottom: 14px; }
+  .lang-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; }
+  .lang-tile {
+    background: var(--black); border: 1px solid var(--line); border-radius: 14px;
+    padding: 12px 8px; text-align: center; cursor: pointer;
+    transition: all .16s ease;
+  }
+  .lang-tile b { display: block; font-size: 17px; }
+  .lang-tile span { color: var(--grey); font-size: 12px; }
+  .lang-tile:hover { border-color: var(--violet); transform: translateY(-2px); }
+  .lang-tile.sel { border-color: var(--lime); box-shadow: 0 0 0 1px var(--lime); }
+  .lang-tile.qd { animation: pulseRing 1.4s ease-in-out infinite; }
+  .home-vybes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .hv-card {
+    position: relative; background: var(--black); border: 1px solid var(--line);
+    border-radius: 16px; overflow: hidden; cursor: pointer; text-align: center;
+    padding-bottom: 12px; transition: all .16s ease;
+  }
+  .hv-card:hover { transform: translateY(-3px); border-color: #3A3A4A; }
+  .hv-card.sel { border-color: var(--lime); box-shadow: 0 0 0 1px var(--lime), 0 10px 34px rgba(216,255,62,.12); }
+  .hv-card img.face { width: 100%; aspect-ratio: 1/.85; object-fit: cover; display: block; }
+  .hv-card .tick2 {
+    position: absolute; top: 10px; right: 10px; width: 24px; height: 24px; border-radius: 50%;
+    background: var(--lime); color: #0A0A0F; font-weight: 700; font-size: 13px;
+    display: none; align-items: center; justify-content: center;
+  }
+  .hv-card.sel .tick2 { display: flex; }
+  .hv-card b { display: block; margin-top: 10px; font-size: 16px; }
+  .hv-card .chip { margin-top: 6px; font-size: 10px; padding: 2px 10px; }
+  .switch-strip { text-align: center; color: var(--grey); font-size: 13.5px; margin: 22px 0 8px; }
+  .section-title { font-family: var(--font-display); font-weight: 700; font-style: italic; text-transform: uppercase; font-size: 26px; margin: 54px 0 18px; }
+  .section-title .accent { color: var(--lime); }
+  nav.top a { color: var(--mist); text-decoration: none; font-size: 14px; margin-right: 22px; }
+  nav.top a:hover { color: var(--lime); }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 </head>
@@ -189,11 +271,62 @@
        onerror="this.outerHTML='<div class=fallback-logo>VYBE</div>'">
   <div class="tagline">Same game. Your vibe.</div>
   <div class="grow"></div>
+  <nav class="top" id="homeNav">
+    <a href="#discover">VYBES</a>
+    <a href="#how">How it works</a>
+  </nav>
   <span class="badge-live" id="liveBadge">LIVE</span>
   <span class="badge-delay" id="delayBadge">Live streaming</span>
+  <img src="/ui/icons/user-w.png" alt="" style="width:26px;height:26px;object-fit:contain;opacity:.8">
 </header>
 
 <main class="container">
+
+  <!-- HOME — the journey starts here -->
+  <section id="sHome" class="screen">
+    <div class="hero-wrap">
+      <div class="hero-inner">
+        <span class="badge-live">LIVE</span>
+        <div class="mega" style="margin-top:16px">Same game.<br>Your <span class="grad">VYBE.</span></div>
+        <div class="hero-sub">Pick your language. Pick your vibe.<br>Watch it your way.</div>
+        <div class="play-row">
+          <button class="play-cta" id="homeStart" title="Start your VYBE"></button>
+          <div class="play-note">← Start your<br>&nbsp;&nbsp;&nbsp;VYBE</div>
+        </div>
+      </div>
+    </div>
+    <div class="combo">
+      <div class="col">
+        <div class="col-title"><img src="/ui/icons/globe-w.png" style="width:18px;height:18px;object-fit:contain"> CHOOSE LANGUAGE</div>
+        <div class="lang-grid" id="homeLangs"></div>
+      </div>
+      <div class="col">
+        <div class="col-title"><div class="wave still" style="height:14px"><i></i><i></i><i></i></div> CHOOSE YOUR <span style="color:var(--lime)">VYBE</span></div>
+        <div class="home-vybes" id="homeVybes"></div>
+      </div>
+    </div>
+    <div class="switch-strip">⇄ &nbsp;Switch your VYBE anytime — even mid-match</div>
+
+    <div class="container" style="padding:0">
+      <div class="section-title" id="discover">Meet the <span class="accent">VYBES</span></div>
+      <div class="cards" id="discoverCards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px"></div>
+
+      <div class="section-title" id="how">How it <span class="accent">works</span></div>
+      <div class="card" style="padding:22px;margin-bottom:50px">
+        <div class="rows" style="display:flex;flex-direction:column;gap:16px;text-align:left">
+          <div class="row" style="align-items:flex-start;gap:14px"><div class="dot" style="flex:none;width:34px;height:34px;border-radius:10px;background:var(--slate-2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center"><img src="/ui/icons/tv.png" style="width:20px;height:20px;object-fit:contain"></div>
+            <div><b style="display:block;font-size:14px">Share the tab where the match is playing</b>
+            <span style="color:var(--grey);font-size:13px">Hotstar, JioCinema, YouTube or any other platform.</span></div></div>
+          <div class="row" style="align-items:flex-start;gap:14px"><div class="dot" style="flex:none;width:34px;height:34px;border-radius:10px;background:var(--slate-2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center"><img src="/ui/icons/mic.png" style="width:20px;height:20px;object-fit:contain"></div>
+            <div><b style="display:block;font-size:14px">Your VYBE takes the mic in real time</b>
+            <span style="color:var(--grey);font-size:13px">Commentary arrives in the language and energy you chose.</span></div></div>
+          <div class="row" style="align-items:flex-start;gap:14px"><div class="dot" style="flex:none;width:34px;height:34px;border-radius:10px;background:var(--slate-2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center"><img src="/ui/icons/shield.png" style="width:20px;height:20px;object-fit:contain"></div>
+            <div><b style="display:block;font-size:14px">Private by design</b>
+            <span style="color:var(--grey);font-size:13px">We only read the tab audio. Nothing is recorded or stored.</span></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <!-- S0 — zero state -->
   <section id="s0" class="screen">
@@ -299,6 +432,8 @@ let isPaused = false, pauseStartedAt = 0, extraDelaySec = 0;
 function show(id) {
   for (const s of document.querySelectorAll(".screen")) s.classList.remove("active");
   $(id).classList.add("active");
+  const nav = $("homeNav");
+  if (nav) nav.style.display = id === "sHome" ? "" : "none";
 }
 
 /* ---------------- state poll ---------------- */
@@ -329,10 +464,55 @@ function boot() {
   bootDone = true;
   renderPicker();
   renderAllChoosers();
-  if (state.video_type === "tab") show("s0");
-  else { show("s2"); }
+  renderHome();
+  show("sHome");
   setInterval(updateBuffer, 300);
 }
+
+/* ---------------- homepage ---------------- */
+function renderHome() {
+  // language tiles
+  const lg = $("homeLangs");
+  lg.innerHTML = LANGS.map(l => {
+    const sel = l.code === activeLang && !pendingLang, qd = l.code === pendingLang;
+    return `<div class="lang-tile${sel || qd ? " sel" : ""}${qd ? " qd" : ""}" data-hl="${l.code}">
+      <b>${l.native}</b><span>${l.en}</span></div>`;
+  }).join("");
+  for (const t of lg.querySelectorAll("[data-hl]"))
+    t.onclick = () => { requestLang(t.dataset.hl); renderHome(); };
+
+  // vybe cards
+  const hv = $("homeVybes");
+  hv.innerHTML = (state.avatars || []).map(a => {
+    const sel = a.id === state.avatar_id;
+    return `<div class="hv-card${sel ? " sel" : ""}" data-hv="${a.id}">
+      <div class="tick2">✓</div>
+      <img class="face" src="${a.image || ""}" alt="${a.name}">
+      <b>${a.name}</b>
+      <span class="chip">${(a.label || "").replace(" VYBE", "")}</span>
+    </div>`;
+  }).join("");
+  for (const c of hv.querySelectorAll("[data-hv]"))
+    c.onclick = async () => { await chooseStarter(c.dataset.hv); renderHome(); };
+
+  // discover cards (portraits + quotes)
+  const dc = $("discoverCards");
+  dc.innerHTML = (state.avatars || []).map(a => `
+    <div class="card vybe-card lime-ring" style="cursor:default">
+      <div class="row"><span class="chip">${a.label}</span></div>
+      <div class="portrait"><img src="${a.image || ""}" alt="${a.name}"></div>
+      <div style="text-align:center">
+        <div class="h-card">${a.name}</div>
+        <div class="sub" style="margin-top:4px">${a.blurb}</div>
+      </div>
+      <div class="quote">“${a.quote}”</div>
+    </div>`).join("");
+}
+
+$("homeStart").onclick = () => {
+  show(state.video_type === "tab" ? "s0" : "s2");
+  window.scrollTo(0, 0);
+};
 poll();
 
 /* ---------------- languages + feedback ---------------- */
@@ -376,6 +556,7 @@ async function requestLang(code) {
     const lang = LANGS.find(x => x.code === code);
     toast(`${lang.native} incoming — your VYBE is switching language`);
     renderAllChoosers();
+    if ($("homeLangs")) renderHome();
   }
 }
 
