@@ -25,6 +25,8 @@ class ElevenLabsTTS:
         self.stability = stability
         self.base_speed = speed
         self.model_id = model_id
+        self.billed_chars = 0   # cache misses — these consume credits
+        self.cached_chars = 0   # cache hits — free
 
     def render(self, text: str, speed: float | None = None) -> bytes:
         # Cache on the full voice recipe: identical requests never bill twice.
@@ -34,7 +36,9 @@ class ElevenLabsTTS:
         ).hexdigest()
         cache_path = CACHE_DIR / f"{key}.mp3"
         if cache_path.exists():
+            self.cached_chars += len(text)
             return cache_path.read_bytes()
+        self.billed_chars += len(text)
 
         url = (f"https://api.elevenlabs.io/v1/text-to-speech/{self.voice_id}"
                f"?output_format=mp3_44100_128")

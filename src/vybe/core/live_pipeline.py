@@ -26,6 +26,12 @@ ASR_RATE = 16000
 DEADLINE_MARGIN = 0.5   # seconds of slack required at publish time
 WATCHDOG_SILENCE = 2.5  # wall seconds without words before closing a beat
 
+# Reference rates for the cost report (checked 2026-08-16; adjust in one place).
+DEEPGRAM_USD_PER_MIN = 0.0077          # Nova-3 streaming
+ELEVEN_USD_PER_1K_CHARS = 0.18         # effective Creator-plan rate; Free = credits
+LLM_USD_PER_M_IN = 0.25                # mini-tier estimate; see provider pricing
+LLM_USD_PER_M_OUT = 2.00
+
 
 class LiveSession:
     def __init__(self, input_spec: str, avatar: Avatar, llm, cfg: dict,
@@ -40,6 +46,7 @@ class LiveSession:
         self.delay = cfg.get("delay_seconds", 15)
         self.rate = cfg.get("sample_rate", 44100)
         self.t0: float | None = None
+        self.asr_seconds = 0.0
         self.lock = threading.Lock()
         self.manifest = {
             "video": "/media/source", "video_type": "file",
@@ -61,7 +68,37 @@ class LiveSession:
             snapshot = json.loads(json.dumps(self.manifest))
         snapshot["t0"] = self.t0
         snapshot["server_now"] = time.time()
+        snapshot["usage"] = self.usage()
         return snapshot
+
+    def usage(self) -> dict:
+        llm = getattr(self, "llm", None)
+        report = {
+            "asr_minutes": round(self.asr_seconds / 60, 2),
+            "asr_usd": round(self.asr_seconds / 60 * DEEPGRAM_USD_PER_MIN, 3),
+            "tts_billed_chars": self.tts.billed_chars,
+            "tts_cached_chars": self.tts.cached_chars,
+            "tts_usd_est": round(self.tts.billed_chars / 1000 * ELEVEN_USD_PER_1K_CHARS, 3),
+        }
+        if llm:
+            report.update({
+                "llm_calls": llm.calls,
+                "llm_tokens_in": llm.prompt_tokens,
+                "llm_tokens_out": llm.completion_tokens,
+                "llm_usd_est": round(llm.prompt_tokens / 1e6 * LLM_USD_PER_M_IN
+                                     + llm.completion_tokens / 1e6 * LLM_USD_PER_M_OUT, 3),
+            })
+        return report
+
+    def print_usage(self) -> None:
+        u = self.usage()
+        print(f"[cost] ASR {u['asr_minutes']} min ≈ ${u['asr_usd']}"
+              f" · TTS {u['tts_billed_chars']:,} credits billed"
+              f" ({u['tts_cached_chars']:,} cached free)"
+              f" ≈ ${u['tts_usd_est']} at Creator rate"
+              + (f" · LLM {u['llm_calls']} calls,"
+                 f" {u['llm_tokens_in']:,}/{u['llm_tokens_out']:,} tokens"
+                 f" ≈ ${u['llm_usd_est']}" if "llm_calls" in u else ""))
 
     # -- publishing -------------------------------------------------------
     def _publish(self, seg: DeliverySegment, mp3_bytes: bytes, duration: float) -> None:
@@ -173,11 +210,13 @@ class LiveSession:
             if first_chunk is not None:
                 self.t0 = time.time()
                 first = False
+                self.asr_seconds += len(first_chunk) / (ASR_RATE * 2)
                 yield first_chunk
             for chunk in source.chunks():
                 if first:
                     self.t0 = time.time()
                     first = False
+                self.asr_seconds += len(chunk) / (ASR_RATE * 2)
                 yield chunk
 
         asr = DeepgramStreamingASR(ASR_RATE)
@@ -238,3 +277,4 @@ class LiveSession:
         finally:
             print(f"[pipeline] done — {len(self.manifest['segments'])} published, "
                   f"{self.manifest['drops']} dropped")
+            self.print_usage()

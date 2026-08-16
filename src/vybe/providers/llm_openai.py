@@ -16,6 +16,9 @@ class OpenAICompatibleLLM:
         self.model = os.environ.get("LLM_MODEL")
         if not self.api_key or not self.model:
             raise RuntimeError("LLM_API_KEY / LLM_MODEL are not set")
+        self.calls = 0
+        self.prompt_tokens = 0
+        self.completion_tokens = 0
 
     def complete(self, system: str, user: str) -> str:
         payload = {
@@ -36,4 +39,8 @@ class OpenAICompatibleLLM:
         )
         with urllib.request.urlopen(req, timeout=120) as resp:
             data = json.loads(resp.read())
+        usage = data.get("usage") or {}
+        self.calls += 1
+        self.prompt_tokens += usage.get("prompt_tokens", 0)
+        self.completion_tokens += usage.get("completion_tokens", 0)
         return data["choices"][0]["message"]["content"]
