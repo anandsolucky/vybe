@@ -215,6 +215,21 @@ class Director:
 
     SLANG = ("bro", "bhai", "yaar")
     CALM_TAGS = ("warmly", "slow", "curious", "softly")
+    PEAK_WORDS = ("six", "four", "wicket", "out", "caught", "bowled",
+                  "gone", "stumped", "runout", "run out", "hundred", "century")
+
+    def _guarantee_peak(self, beat_text: str, text: str) -> str:
+        """A peak moment MUST shout — commentary law, not a suggestion.
+        If the source beat contains a peak event and the line has no
+        [shouts], replace its opening tag with one."""
+        source = beat_text.lower()
+        if not any(w in source for w in self.PEAK_WORDS):
+            return text
+        if "[shouts" in text or "[scream" in text:
+            return text
+        if re.match(r"\s*\[[^\]]+\]", text):
+            return re.sub(r"^\s*\[[^\]]+\]", "[shouts]", text, count=1)
+        return "[shouts] " + text
 
     def _break_calm_streak(self, text: str) -> str:
         """Two calm-tagged lines in a row make a lullaby. Swap the second
@@ -260,6 +275,7 @@ class Director:
         anchor = beats[index].start
         text = enforce_delivery(text)
         text = self._break_calm_streak(text)
+        text = self._guarantee_peak(beats[index].text, text)
         self.previous.append((anchor, text))
         return DeliverySegment(text=text, anchor=anchor, slot_end=anchor + slot,
                                english=reply.get("english", "").strip())
