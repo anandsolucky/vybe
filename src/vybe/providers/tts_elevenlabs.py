@@ -54,9 +54,11 @@ class ElevenLabsTTS:
                 "speed": speed or self.base_speed,
             },
         }
-        # Unbilled prosody context: v3 reads emotion far better with the
-        # preceding lines in view (our lines are ~65 chars; v3 wants 250+).
-        if previous_text:
+        # previous_text conditioning is NOT supported by eleven_v3 yet
+        # (HTTP 400 unsupported_model, verified live 2026-08-16). Send it
+        # only on models that accept it; re-enable for v3 when ElevenLabs
+        # ships support — it is the right fix for short-line flatness.
+        if previous_text and not self.model_id.startswith("eleven_v3"):
             payload["previous_text"] = previous_text[-500:]
         req = urllib.request.Request(
             url,
