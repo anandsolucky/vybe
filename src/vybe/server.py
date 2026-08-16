@@ -34,7 +34,12 @@ def make_handler(session, source_path: str, session_dir: Path):
             self._send(200, path.read_bytes(), ctype)
 
         def do_POST(self) -> None:
-            if self.path == "/switch":
+            if self.path == "/language":
+                length = int(self.headers.get("Content-Length", 0))
+                code = self.rfile.read(length).decode("utf-8", "replace").strip()
+                ok = session.switch_language(code)
+                self._send(200 if ok else 409, b"ok" if ok else b"rejected", "text/plain")
+            elif self.path == "/switch":
                 length = int(self.headers.get("Content-Length", 0))
                 avatar_id = self.rfile.read(length).decode("utf-8", "replace").strip()
                 ok = session.switch_lane(avatar_id)

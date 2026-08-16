@@ -141,12 +141,33 @@
   }
   .btn-add.on { background: var(--lime); color: #0A0A0F; border-color: var(--lime); }
   .meta { margin-top: 10px; display: flex; gap: 18px; }
+  /* motion system */
+  .screen.active { animation: fadeUp .35s ease both; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .pick-row, .mini-card, .btn, .chip-lang { transition: transform .16s ease, border-color .16s ease, box-shadow .2s ease, opacity .2s ease, background .2s ease; }
+  .mini-card:hover:not(.dim), .pick-row:hover:not(.locked) { transform: translateY(-2px); }
+  .queued { animation: pulseRing 1.4s ease-in-out infinite; }
+  @keyframes pulseRing { 0%,100% { box-shadow: 0 0 0 1px var(--violet); } 50% { box-shadow: 0 0 0 5px rgba(115,87,255,.30); } }
+  #topbar { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 60; overflow: hidden; opacity: 0; transition: opacity .3s; pointer-events: none; }
+  #topbar.on { opacity: 1; }
+  #topbar::before { content: ""; position: absolute; top: 0; bottom: 0; width: 38%; background: var(--grad); border-radius: 3px; animation: slideBar 1.1s ease-in-out infinite; }
+  @keyframes slideBar { from { left: -40%; } to { left: 105%; } }
+  #toast { position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%) translateY(16px); background: var(--slate); border: 1px solid var(--violet); border-radius: 999px; padding: 10px 22px; font-size: 13.5px; opacity: 0; transition: all .3s ease; z-index: 70; pointer-events: none; max-width: 80%; text-align: center; }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .chip-lang { cursor: pointer; border: 1px solid var(--lime); color: var(--lime); border-radius: 999px; padding: 6px 16px; font-size: 13.5px; display: inline-flex; align-items: center; gap: 8px; }
+  .chip-lang .en-name { opacity: .6; font-size: 11.5px; }
+  .chip-lang.off { border-color: var(--line); color: var(--grey); }
+  .chip-lang.off:hover { border-color: var(--violet); color: var(--white); }
+  .chip-lang .spin { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--slate-2); border-top-color: var(--lime); animation: spin 1s linear infinite; }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 </head>
 <body>
 <div style="position:fixed;inset:0;z-index:-1;background:
   linear-gradient(rgba(10,10,15,.82), rgba(10,10,15,.96)),
   url('/ui/hero.jpg') center/cover no-repeat var(--black)"></div>
+<div id="topbar"></div>
+<div id="toast"></div>
 <header class="app">
   <img class="logo" src="/ui/logo.png" alt="VYBE"
        onerror="this.outerHTML='<div class=fallback-logo>VYBE</div>'">
@@ -191,12 +212,7 @@
       </div>
       <div class="sub" style="margin:4px 0 14px">Any language. Any VYBE. Switch anytime during the match.</div>
       <div class="small" style="letter-spacing:1.5px;font-weight:600">LANGUAGE</div>
-      <div class="row" style="margin:8px 0 16px;flex-wrap:wrap">
-        <span class="chip" style="font-size:14px;padding:6px 16px">हिन्दी <span style="opacity:.6">(Hindi)</span></span>
-        <span class="chip" style="border-color:var(--line);color:var(--grey);font-size:13px" title="Coming soon">ગુજરાતી <span style="opacity:.6">(Gujarati)</span></span>
-        <span class="chip" style="border-color:var(--line);color:var(--grey);font-size:13px" title="Coming soon">தமிழ் <span style="opacity:.6">(Tamil)</span></span>
-        <span class="chip" style="border-color:var(--line);color:var(--grey);font-size:13px" title="Coming soon">मराठी <span style="opacity:.6">(Marathi)</span></span>
-      </div>
+      <div class="row" style="margin:8px 0 16px;flex-wrap:wrap" id="langsPick"></div>
       <div class="small" style="letter-spacing:1.5px;font-weight:600;margin-bottom:2px">YOUR VYBE — HINDI</div>
       <div id="cards"></div>
       <div class="row" style="margin-top:20px">
@@ -223,6 +239,7 @@
         <button class="ctl" id="fsBtn" title="Fullscreen"><img src="/ui/icons/fullscreen.png" alt="⤢" style="width:20px;height:20px;object-fit:contain"></button>
       </div>
     </div>
+    <div class="row" id="langsPlay" style="margin-top:16px;flex-wrap:wrap"></div>
     <div class="rail" id="rail"></div>
     <div class="meta small">
       <span id="segCount">0 segments</span>
@@ -274,8 +291,9 @@ async function poll() {
       if (state.usage.asr_ingest_lag > 1.5)
         console.warn(`[vybe] ASR ingest lag ${state.usage.asr_ingest_lag}s`);
     }
+    $("topbar").classList.toggle("on", !!(state.queued_vybe || state.queued_language));
     if (!bootDone) boot();
-    else if (playbackStarted) renderRail();
+    else { renderLangs("langsPick"); renderLangs("langsPlay"); if (playbackStarted) renderRail(); }
   } catch (e) { /* server restarting */ }
   setTimeout(poll, 1000);
 }
@@ -283,11 +301,53 @@ let bootDone = false;
 function boot() {
   bootDone = true;
   renderPicker();
+  renderLangs("langsPick");
+  renderLangs("langsPlay");
   if (state.video_type === "tab") show("s0");
   else { show("s2"); }
   setInterval(updateBuffer, 300);
 }
 poll();
+
+/* ---------------- languages + feedback ---------------- */
+const LANGS = [
+  { code: "hi", native: "हिन्दी", en: "Hindi" },
+  { code: "gu", native: "ગુજરાતી", en: "Gujarati" },
+  { code: "ta", native: "தமிழ்", en: "Tamil" },
+  { code: "mr", native: "मराठी", en: "Marathi" },
+];
+let toastTimer = null;
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 3200);
+}
+function renderLangs(containerId) {
+  const el = $(containerId);
+  if (!el) return;
+  const active = (state && state.language) || "hi";
+  const queued = state && state.queued_language;
+  el.innerHTML = LANGS.map(l => {
+    const isActive = l.code === active, isQueued = l.code === queued;
+    return `<span class="chip-lang${isActive ? "" : " off"}${isQueued ? " queued" : ""}" data-lang="${l.code}">
+      ${l.native} <span class="en-name">(${l.en})</span>${isQueued ? '<span class="spin"></span>' : ""}</span>`;
+  }).join("");
+  for (const c of el.querySelectorAll("[data-lang]")) {
+    c.onclick = async () => {
+      const code = c.dataset.lang;
+      if (code === ((state && state.language) || "hi") || code === (state && state.queued_language)) return;
+      const res = await fetch("/language", { method: "POST", body: code });
+      if (res.ok) {
+        state.queued_language = code;
+        const lang = LANGS.find(x => x.code === code);
+        toast(`${lang.native} incoming — your VYBE switches language in a moment`);
+        renderLangs("langsPick"); renderLangs("langsPlay");
+      }
+    };
+  }
+}
 
 /* ---------------- picker (compact) ---------------- */
 function pickRow(a) {
@@ -642,7 +702,7 @@ function renderRail() {
     const active = (v.id === "original" && mode === "original") ||
                    (mode === "vybe" && v.id === (activeVybeId || state.avatar_id));
     const isQueued = v.id === queued;
-    const cls = `card mini-card${active ? " active" : ""}${v.locked ? " dim" : ""}`;
+    const cls = `card mini-card${active ? " active" : ""}${v.locked ? " dim" : ""}${isQueued ? " queued" : ""}`;
     const thumb = v.image ? `<img src="${v.image}">` : v.name[0];
     const note = v.id === "original" ? "Official feed"
       : v.locked ? "Coming soon"
@@ -662,7 +722,12 @@ function renderRail() {
       const current = activeVybeId || state.avatar_id;
       if (id !== current && id !== state.queued_vybe) {
         const res = await fetch("/switch", { method: "POST", body: id });
-        if (res.ok) { state.queued_vybe = id; renderRail(); }
+        if (res.ok) {
+          state.queued_vybe = id;
+          const v = (state.avatars || []).find(a => a.id === id);
+          toast(`${v ? v.name : id} is warming up — takes the mic in a moment`);
+          renderRail();
+        }
       }
     };
   }

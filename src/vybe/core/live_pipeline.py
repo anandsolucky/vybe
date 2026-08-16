@@ -59,13 +59,15 @@ class LiveSession:
             "video": "/media/source", "video_type": "file",
             "delay": self.delay, "sport": "cricket",
             "avatar": avatar.name, "avatar_id": avatar.id,
-            "active_vybes": [avatar.id],
+            "active_vybes": [avatar.id], "language": "hi",
             "avatars": self._roster(cfg), "started": False,
             "segments": [], "drops": 0,
         }
         self.lanes = [self._make_lane(avatar)]
         self.active_idx = 0
         self._pending_id: str | None = None
+        self.language = "hi"
+        self._pending_lang: str | None = None
         self.tts = self.lanes[0]["tts"]  # primary lane alias (replay, usage)
 
     def _make_lane(self, avatar: Avatar) -> dict:
@@ -141,7 +143,34 @@ class LiveSession:
         print(f"[pipeline] VYBE queued: {avatar_id}")
         return True
 
+    def switch_language(self, code: str) -> bool:
+        """On-demand language switch — same warming-up mechanic as VYBEs.
+        Voices are multilingual (v3); only the director's writing changes."""
+        from .director import LANGUAGES
+        if code not in LANGUAGES:
+            return False
+        with self.lock:
+            if code == self.language:
+                self._pending_lang = None
+                self.manifest.pop("queued_language", None)
+                return True
+            self._pending_lang = code
+            self.manifest["queued_language"] = code
+        print(f"[pipeline] language queued: {code}")
+        return True
+
     def _activate_pending(self) -> None:
+        lang = self._pending_lang
+        if lang:
+            self.language = lang
+            for lane in self.lanes:
+                if lane["director"] is not None and getattr(self, "llm", None):
+                    lane["director"] = Director(self.llm, lane["avatar"], self.language)
+            with self.lock:
+                self._pending_lang = None
+                self.manifest["language"] = lang
+                self.manifest.pop("queued_language", None)
+            print(f"[pipeline] language on the mic: {lang}")
         pending = self._pending_id
         if not pending:
             return
@@ -150,7 +179,7 @@ class LiveSession:
             lane = self._make_lane(load_avatar(self.cfg.get("default_language", "hi"), pending))
             self.lanes.append(lane)
         if lane["director"] is None and getattr(self, "llm", None):
-            lane["director"] = Director(self.llm, lane["avatar"])
+            lane["director"] = Director(self.llm, lane["avatar"], self.language)
         with self.lock:
             self.active_idx = self.lanes.index(lane)
             self._pending_id = None
@@ -369,8 +398,9 @@ class LiveSession:
 
         # Built after the picker window closes, so a pre-capture VYBE
         # selection takes effect.
+        self._activate_pending()   # pre-start language/VYBE choices apply
         self.lanes[self.active_idx]["director"] = Director(
-            self.llm, self.lanes[self.active_idx]["avatar"])
+            self.llm, self.lanes[self.active_idx]["avatar"], self.language)
 
         def clocked_chunks():
             first = True

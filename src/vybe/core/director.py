@@ -16,6 +16,13 @@ from dataclasses import dataclass
 from ..providers.base import DeliverySegment, Word
 from .avatars import Avatar
 
+LANGUAGES = {
+    "hi": None,  # Hindi is the personas' native register — no override
+    "gu": ("Gujarati", "ગુજરાતી (Gujarati script)"),
+    "ta": ("Tamil", "தமிழ் (Tamil script)"),
+    "mr": ("Marathi", "मराठी (Devanagari script)"),
+}
+
 BEAT_GAP = 0.8       # silence that separates two beats (seconds)
 MAX_BEAT_LEN = 7.0   # force-close a beat after this much continuous speech
 MAX_SLOT = 12.0      # cap a slot even when the source goes quiet
@@ -124,8 +131,17 @@ what you just said). A live commentator keeps the mic warm — when in
 doubt, speak."""
 
 
-def system_prompt(avatar: Avatar) -> str:
+def system_prompt(avatar: Avatar, language: str = "hi") -> str:
     style = avatar.style
+    lang_override = ""
+    if LANGUAGES.get(language):
+        name, script = LANGUAGES[language]
+        lang_override = f"""
+
+LANGUAGE OVERRIDE — ABSOLUTE: write every line in {name}, using {script}.
+NOT Hindi. Every persona rule, the delivery layer, budgets, and complete
+sentences apply unchanged, expressed in natural {name}. Cricket terms
+(six, four, bat, ball, catch, over, wicket, runs) stay in English."""
     rules = "\n".join(f"- {r}" for r in style.get("sentence_rules", []))
     return f"""You are {avatar.name} — {avatar.description}
 You re-voice live cricket commentary in your own words and language. You are
@@ -174,7 +190,7 @@ Hard constraints:
 Reference of your voice (do not copy verbatim):
 {avatar.approved_sample}
 
-{OUTPUT_RULES}"""
+{OUTPUT_RULES}{lang_override}"""
 
 
 HISTORY_BEATS = 10   # rolling context window: keeps prompts (and director
@@ -211,10 +227,11 @@ def parse_reply(raw: str) -> dict:
 
 
 class Director:
-    def __init__(self, llm, avatar: Avatar):
+    def __init__(self, llm, avatar: Avatar, language: str = "hi"):
         self.llm = llm
         self.avatar = avatar
-        self.system = system_prompt(avatar)
+        self.language = language
+        self.system = system_prompt(avatar, language)
         self.previous: list[tuple[float, str]] = []
 
     def slot_for(self, beats: list[Beat], index: int) -> float:
