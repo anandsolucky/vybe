@@ -176,10 +176,14 @@
   .fs-vybe .thumb { width: 34px; height: 34px; border-radius: 50%; overflow: hidden; flex: none; }
   .fs-vybe .thumb img { width: 100%; height: 100%; object-fit: cover; }
   /* homepage */
+  #sHome { margin: 0 calc(50% - 50vw); }   /* break out of the app container */
   #sHome .hero-wrap {
-    position: relative; min-height: 78vh; display: flex; align-items: center;
-    border-radius: 0 0 24px 24px; overflow: hidden; margin: 0 -20px;
+    position: relative; min-height: 82vh; display: flex; align-items: center;
+    overflow: hidden;
   }
+  #sHome .hero-inner { padding-left: max(44px, 6vw) !important; }
+  #sHome .combo { margin: -70px 4vw 0; }
+  #sHome > .container { padding: 0 4vw; max-width: none; }
   #sHome .hero-wrap::before {
     content: ""; position: absolute; inset: 0;
     background: url('/ui/hero-virat.jpg') center/cover no-repeat;
@@ -473,6 +477,7 @@ function boot() {
 function renderHome() {
   // language tiles
   const lg = $("homeLangs");
+  if (!lg) return;
   lg.innerHTML = LANGS.map(l => {
     const sel = l.code === activeLang && !pendingLang, qd = l.code === pendingLang;
     return `<div class="lang-tile${sel || qd ? " sel" : ""}${qd ? " qd" : ""}" data-hl="${l.code}">
@@ -550,14 +555,22 @@ function renderLangs(containerId) {
 async function requestLang(code) {
   if (code === activeLang || code === pendingLang) return;
   const res = await fetch("/language", { method: "POST", body: code });
-  if (res.ok) {
-    pendingLang = code;
-    $("topbar").classList.add("on");
-    const lang = LANGS.find(x => x.code === code);
-    toast(`${lang.native} incoming — your VYBE is switching language`);
+  if (!res.ok) return;
+  if (!playbackStarted) {
+    // Pre-session this is just a preference — select instantly, no
+    // warming-up theatre. The pipeline applies it from the first beat.
+    activeLang = code;
+    pendingLang = null;
     renderAllChoosers();
-    if ($("homeLangs")) renderHome();
+    renderHome();
+    return;
   }
+  pendingLang = code;
+  $("topbar").classList.add("on");
+  const lang = LANGS.find(x => x.code === code);
+  toast(`${lang.native} incoming — your VYBE is switching language`);
+  renderAllChoosers();
+  renderHome();
 }
 
 async function requestVybe(id) {
