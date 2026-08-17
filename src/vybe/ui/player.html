@@ -88,8 +88,10 @@
     animation: sheen 2.4s linear infinite;
   }
   @keyframes sheen { from { left: -60px; } to { left: 100%; } }
-  .ctl { background: none; border: none; color: var(--white); cursor: pointer; font-size: 17px; opacity: 1; }
-  .controlbar img { filter: drop-shadow(0 1px 3px rgba(0,0,0,.9)); }
+  .ctl { background: none; border: none; color: var(--white); cursor: pointer;
+    padding: 0; line-height: 0; display: flex; align-items: center; justify-content: center; opacity: 1; }
+  .controlbar { align-items: center; }
+  .controlbar img { display: block; filter: drop-shadow(0 1px 3px rgba(0,0,0,.95)) brightness(1.25); }
   .ctl:hover { opacity: 1; }
   input.vol { width: 86px; accent-color: var(--violet); }
   .rail { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
@@ -399,10 +401,10 @@
         <span class="small" id="barTime" style="color:var(--white)">0:00</span>
         <div class="strip" title="Live streaming"></div>
         <span class="small" style="color:var(--lime)" id="barLag">Live streaming</span>
-        <button class="ctl ccbtn active" id="ccBtn" title="Captions"><img src="/ui/icons/cc-w.png" alt="CC" style="width:27px;height:27px;object-fit:contain"></button>
-        <img src="/ui/icons/speaker-w.png" alt="" style="width:26px;height:26px;object-fit:contain">
+        <button class="ctl ccbtn active" id="ccBtn" title="Captions"><img src="/ui/icons/cc-w.png" alt="CC" style="width:30px;height:30px;object-fit:contain"></button>
+        <img src="/ui/icons/speaker-w.png" alt="" style="width:30px;height:30px;object-fit:contain;display:block">
         <input class="vol" id="vol" type="range" min="0" max="1" step="0.02" value="1" title="Volume">
-        <button class="ctl" id="fsBtn" title="Fullscreen"><img src="/ui/icons/fullscreen-w.png" alt="⤢" style="width:27px;height:27px;object-fit:contain"></button>
+        <button class="ctl" id="fsBtn" title="Fullscreen"><img src="/ui/icons/fullscreen-w.png" alt="⤢" style="width:30px;height:30px;object-fit:contain"></button>
       </div>
     </div>
     <div class="row" id="langsPlay" style="margin-top:16px;flex-wrap:wrap"></div>
