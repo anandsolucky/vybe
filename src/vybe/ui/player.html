@@ -21,24 +21,102 @@
   }
   header .tagline { color: var(--grey); font-size: 13px; }
 
-  /* S0 — zero state */
-  #s0 .hero {
-    max-width: 620px; margin: 48px auto; padding: 36px 34px; text-align: center;
+  /* S0 — share the tab */
+  #s0 { padding: 22px 0 40px; }
+  .s0-panel {
+    background: rgba(16,16,22,.78); backdrop-filter: blur(16px);
+    border: 1px solid var(--line); border-radius: 26px; padding: 24px 30px 30px;
   }
-  #s0 .hero .wave { height: 34px; margin-bottom: 18px; }
-  #s0 h1 { font-family: var(--font-display); font-weight: 700; font-size: 30px; }
-  #s0 h1 .accent { color: var(--lime); }
-  #s0 .sub { margin-top: 8px; }
-  #s0 .rows { text-align: left; margin: 26px 0; display: flex; flex-direction: column; gap: 14px; }
-  #s0 .rows .row { align-items: flex-start; gap: 14px; }
-  #s0 .rows b { display: block; font-size: 14px; }
-  #s0 .rows span { color: var(--grey); font-size: 13px; }
-  #s0 .dot {
-    flex: none; width: 34px; height: 34px; border-radius: 10px;
+  .s0-top { display: flex; align-items: center; gap: 26px; flex-wrap: wrap; }
+  .btn-back {
+    display: inline-flex; align-items: center; gap: 9px; cursor: pointer;
+    background: rgba(247,247,242,.04); color: var(--white);
+    border: 1px solid var(--line); border-radius: var(--r-pill);
+    padding: 10px 20px 10px 16px; font-size: 14px; font-family: var(--font-body);
+    transition: border-color .16s ease, background .16s ease;
+  }
+  .btn-back:hover { border-color: var(--violet); background: rgba(115,87,255,.10); }
+  .stepper { display: flex; align-items: center; gap: 14px; flex: 1; justify-content: center; }
+  .stepper .step { display: flex; align-items: center; gap: 10px; color: var(--grey); font-size: 14.5px; }
+  .stepper .step i {
+    width: 27px; height: 27px; border-radius: 50%; font-style: normal; font-size: 13px;
+    border: 1.5px solid var(--line); display: flex; align-items: center; justify-content: center;
+  }
+  .stepper .step.on { color: var(--white); font-weight: 600; }
+  .stepper .step.on i { border-color: var(--violet); color: var(--white); box-shadow: 0 0 0 4px rgba(115,87,255,.14); }
+  .stepper .dash { flex: 0 1 96px; border-top: 1.5px dashed #33333F; }
+
+  .s0-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 44px; margin-top: 26px; }
+  .s0-left { border-right: 1px solid var(--line); padding-right: 44px; text-align: center; }
+  @media (max-width: 1000px) {
+    .s0-cols { grid-template-columns: 1fr; }
+    .s0-left { border-right: none; padding-right: 0; }
+  }
+  #s0 .glyph { color: #9B85FF; margin-bottom: 18px; filter: drop-shadow(0 0 18px rgba(115,87,255,.45)); }
+  #s0 h1 { font-family: var(--font-display); font-weight: 700; font-size: 32px; letter-spacing: -.3px; }
+  #s0 h1 .grad { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  #s0 .sub { margin-top: 10px; color: var(--mist); font-size: 15px; line-height: 1.6; }
+
+  .steplist {
+    text-align: left; margin: 24px 0 22px; padding: 18px 20px;
+    border: 1px solid var(--line); border-radius: 18px; background: rgba(10,10,15,.45);
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .sl-row { display: flex; align-items: flex-start; gap: 16px; position: relative; }
+  .sl-row + .sl-row::before {          /* dashed rail between the step icons */
+    content: ""; position: absolute; left: 23px; top: -16px; height: 16px;
+    border-left: 1.5px dashed #33333F;
+  }
+  .sl-ico {
+    flex: none; width: 47px; height: 47px; border-radius: 50%; color: #9B85FF;
+    border: 1px solid var(--line); background: rgba(23,23,31,.9);
+  }
+  .sl-txt b { display: flex; align-items: center; gap: 9px; font-size: 15px; }
+  .sl-txt b i {
+    width: 21px; height: 21px; border-radius: 50%; font-style: normal; font-size: 11.5px;
+    font-weight: 600; color: var(--white); border: 1.5px solid #3A3A4A;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .sl-txt span { display: block; margin-top: 4px; color: var(--grey); font-size: 13.5px; line-height: 1.5; }
+
+  .s0-cta {
+    width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 12px;
+    font-size: 16px; letter-spacing: 1.6px; font-weight: 700; padding: 17px 24px; color: var(--black);
+  }
+  #s0 .secure {
+    display: flex; align-items: center; justify-content: center; gap: 9px;
+    margin-top: 14px; color: var(--mist); font-size: 13.5px;
+  }
+  #s0 .secure [data-icon] { color: #9B85FF; }
+  .platforms {
+    display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: nowrap;
+    overflow-x: auto;
+    margin-top: 24px; padding: 14px 18px; border: 1px solid var(--line);
+    border-radius: 16px; background: rgba(10,10,15,.45); font-size: 13px;
+  }
+  .platforms > * { white-space: nowrap; }
+  .platforms b { color: var(--violet); font-weight: 600; border-bottom: 1px solid var(--violet); padding-bottom: 2px; }
+  .platforms span { color: var(--mist); }
+  .platforms em { color: var(--grey); font-style: normal; }
+
+  .s0-right { display: flex; flex-direction: column; gap: 26px; justify-content: center; }
+  .s0-right .illo { width: 100%; display: block; mix-blend-mode: screen; }
+  .feats { display: flex; flex-direction: column; gap: 16px; }
+  .ft { display: flex; align-items: center; gap: 16px; }
+  .ft-ico {
+    flex: none; width: 52px; height: 52px; border-radius: 14px; color: #9B85FF;
     background: var(--slate-2); border: 1px solid var(--line);
-    display: flex; align-items: center; justify-content: center;
   }
-  #s0 .secure { margin-top: 14px; }
+  .ft b { display: block; font-size: 15px; }
+  .ft span { display: block; margin-top: 3px; color: var(--grey); font-size: 13.5px; }
+
+  .safety-strip {
+    display: flex; align-items: center; justify-content: center; gap: 11px;
+    margin-top: 18px; padding: 18px; border-radius: 18px;
+    border: 1px solid var(--line); background: rgba(16,16,22,.7);
+    color: var(--mist); font-size: 14px;
+  }
+  .safety-strip [data-icon] { color: #9B85FF; }
 
   /* S2 — picker */
   #s2 { padding: 34px 0 140px; }
@@ -427,26 +505,78 @@
     </div>
   </section>
 
-  <!-- S0 — zero state -->
+  <!-- S0 — share the tab (step 1 of 3) -->
   <section id="s0" class="screen">
-    <div class="card hero">
-      <img src="/brand/generated/share-tab-illo.png" alt=""
-           style="width:240px;border-radius:14px;margin-bottom:16px">
-      <h1>Let's get the game on <span class="accent">VYBE</span></h1>
-      <div class="sub">To bring you live commentary in your vibe,<br>we need access to the live stream.</div>
-      <div class="rows">
-        <div class="row"><div class="dot"><span data-icon="tv" data-size="20"></span></div>
-          <div><b>Share the tab where the match is playing</b>
-          <span>Hotstar, JioCinema, YouTube or any other platform.</span></div></div>
-        <div class="row"><div class="dot"><span data-icon="mic" data-size="20"></span></div>
-          <div><b>We'll read the audio in real time</b>
-          <span>Your commentary arrives in the vibe you choose.</span></div></div>
-        <div class="row"><div class="dot"><span data-icon="shield" data-size="20"></span></div>
-          <div><b>Your privacy is our priority</b>
-          <span>We only access the tab audio. Nothing is recorded or stored.</span></div></div>
+    <div class="s0-panel">
+      <div class="s0-top">
+        <button class="btn-back" id="backHome">
+          <span data-icon="arrowLeft" data-size="18"></span> Back to Home
+        </button>
+        <div class="stepper">
+          <div class="step on"><i>1</i> Share Tab</div>
+          <span class="dash"></span>
+          <div class="step"><i>2</i> VYBE is getting ready</div>
+          <span class="dash"></span>
+          <div class="step"><i>3</i> You're Live!</div>
+        </div>
       </div>
-      <button class="btn btn-cta" id="shareBtn">Share tab to start</button>
-      <div class="small secure">Secure. Private. Only for live audio.</div>
+
+      <div class="s0-cols">
+        <div class="s0-left">
+          <div class="glyph" data-icon="windowOut" data-size="54"></div>
+          <h1>Let's get the game on <span class="grad">VYBE</span></h1>
+          <div class="sub">To bring you live commentary in your vibe,<br>
+            we need access to the match stream.</div>
+
+          <div class="steplist">
+            <div class="sl-row">
+              <div class="sl-ico" data-icon="windowOut" data-size="22"></div>
+              <div class="sl-txt"><b><i>1</i> Open the tab</b>
+                <span>Open the live match in your browser.</span></div>
+            </div>
+            <div class="sl-row">
+              <div class="sl-ico" data-icon="upload" data-size="22"></div>
+              <div class="sl-txt"><b><i>2</i> Share the tab</b>
+                <span>Click the button below and select the tab with the live match.</span></div>
+            </div>
+            <div class="sl-row">
+              <div class="sl-ico" data-icon="waves" data-size="22"></div>
+              <div class="sl-txt"><b><i>3</i> VYBE goes live</b>
+                <span>We read the audio and deliver your VYBE in real time.</span></div>
+            </div>
+          </div>
+
+          <button class="btn btn-cta s0-cta" id="shareBtn">
+            <span data-icon="windowOut" data-size="22"></span> SHARE TAB TO START
+          </button>
+          <div class="secure">
+            <span data-icon="lock" data-size="16"></span> Secure. Private. Only for live audio.
+          </div>
+
+          <div class="platforms">
+            <b>Supported platforms</b>
+            <span>Hotstar</span><span>JioCinema</span><span>YouTube</span><span>Sony LIV</span>
+            <em>&amp; more</em>
+          </div>
+        </div>
+
+        <div class="s0-right">
+          <img class="illo" src="/brand/generated/share-tab-illo.png" alt="">
+          <div class="feats">
+            <div class="ft"><div class="ft-ico" data-icon="lock" data-size="22"></div>
+              <div><b>We only access the tab audio</b><span>Nothing is recorded or stored.</span></div></div>
+            <div class="ft"><div class="ft-ico" data-icon="shield" data-size="22"></div>
+              <div><b>Your privacy is our priority</b><span>The stream never leaves your machine.</span></div></div>
+            <div class="ft"><div class="ft-ico" data-icon="headphones" data-size="22"></div>
+              <div><b>Works across platforms</b><span>Hotstar, JioCinema, YouTube and more.</span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="safety-strip">
+      <span data-icon="shield" data-size="18"></span>
+      100% safe. We only capture tab audio. Nothing is recorded or stored.
     </div>
   </section>
 
@@ -548,6 +678,16 @@ const ICON = {
            + '<path d="M20.5 15H6.7M9.8 11.8 6.5 15l3.3 3.2"/>',
   lock:      '<rect x="4.5" y="10.5" width="15" height="10" rx="3"/>'
            + '<path d="M8 10.5V7.8a4 4 0 0 1 8 0v2.7"/>',
+  windowOut: '<rect x="2.5" y="4.5" width="19" height="15" rx="3.5"/><path d="M2.5 9.2h19"/>'
+           + '<circle cx="5.9" cy="6.9" r=".95" fill="currentColor" stroke="none"/>'
+           + '<circle cx="8.9" cy="6.9" r=".95" fill="currentColor" stroke="none"/>'
+           + '<path d="M9.4 16.6 16.4 11.8M16.4 11.8h-3.9M16.4 11.8v3.9"/>',
+  upload:    '<path d="M12 15.5V4.8M8.2 8.4 12 4.6l3.8 3.8"/>'
+           + '<path d="M4.6 14.6v2.9a3 3 0 0 0 3 3h8.8a3 3 0 0 0 3-3v-2.9"/>',
+  waves:     '<path d="M4 10.6v2.8M8 8v8M12 5.2v13.6M16 8v8M20 10.6v2.8" stroke-width="2.4"/>',
+  headphones:'<path d="M4 15.5v-3a8 8 0 0 1 16 0v3"/>'
+           + '<rect x="2.5" y="13.8" width="5" height="7.2" rx="2.5"/>'
+           + '<rect x="16.5" y="13.8" width="5" height="7.2" rx="2.5"/>',
 };
 function icon(name, size) {
   size = size || 24;
@@ -677,6 +817,8 @@ syncFold();
 window.addEventListener("resize", syncFold);
 window.addEventListener("load", syncFold);
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(syncFold);
+
+$("backHome").onclick = () => { show("sHome"); window.scrollTo(0, 0); };
 
 $("homeStart").onclick = () => {
   show(state.video_type === "tab" ? "s0" : "s2");
