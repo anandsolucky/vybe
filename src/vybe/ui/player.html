@@ -231,8 +231,8 @@
   .hero-sub { color: var(--mist); font-size: 17px; margin-top: 18px; line-height: 1.55; }
   .play-row { display: flex; align-items: center; gap: 18px; margin-top: 34px; }
   .play-cta {
-    width: 86px; height: 86px; border-radius: 50%; cursor: pointer;
-    background: rgba(10,10,15,.55); position: relative; border: none;
+    width: 100px; height: 100px; border-radius: 50%; cursor: pointer; padding: 0;
+    background: rgba(10,10,15,.86); position: relative; border: none; color: var(--white);
     display: flex; align-items: center; justify-content: center;
     transition: transform .18s ease, box-shadow .25s ease;
   }
@@ -240,13 +240,14 @@
     content: ""; position: absolute; inset: -3px; border-radius: 50%;
     background: var(--grad); z-index: -1;
   }
-  .play-cta::after {
-    content: ""; width: 0; height: 0; margin-left: 6px;
-    border-left: 26px solid var(--white); border-top: 16px solid transparent;
-    border-bottom: 16px solid transparent;
-  }
+  .play-cta .i { margin-left: 5px; }   /* optical centre inside the ring */
   .play-cta:hover { transform: scale(1.06); box-shadow: 0 0 44px rgba(216,255,62,.35); }
-  .play-note { font-family: var(--font-display); font-style: italic; color: var(--lime); font-size: 19px; line-height: 1.25; }
+  .play-note {
+    font-family: var(--font-display); font-style: italic; color: var(--lime);
+    font-size: 21px; line-height: 1.22; display: flex; align-items: center; gap: 14px;
+  }
+  .play-note .arrow { color: var(--lime); animation: nudge 1.8s ease-in-out infinite; }
+  @keyframes nudge { 50% { transform: translateX(-5px); } }
   .combo {
     background: rgba(23,23,31,.72); backdrop-filter: blur(14px);
     border: 1px solid var(--line); border-radius: 20px;
@@ -254,19 +255,23 @@
     display: flex; gap: 34px; flex-wrap: wrap;
   }
   .combo .col { flex: 1; min-width: 300px; }
-  .combo .col-title { display: flex; align-items: center; gap: 9px; font-size: 13px; letter-spacing: 2px; font-weight: 600; margin-bottom: 14px; }
+  .combo .col-title { display: flex; align-items: center; gap: 10px; font-size: 13.5px; letter-spacing: 2.4px; font-weight: 600; margin-bottom: 16px; color: var(--white); }
+  .ti.violet { color: #9B85FF; }
+  .ti.lime { color: var(--lime); }
   .lang-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; }
   .lang-tile {
-    background: var(--black); border: 1px solid var(--line); border-radius: 14px;
-    padding: 12px 8px; text-align: center; cursor: pointer;
+    background: var(--black); border: 1px solid var(--line); border-radius: 13px;
+    padding: 14px 8px 12px; text-align: center; cursor: pointer;
     transition: all .16s ease;
   }
-  .lang-tile b { display: block; font-size: 17px; }
-  .lang-tile span { color: var(--grey); font-size: 12px; }
+  .lang-tile b { display: block; font-size: 18px; font-weight: 600; letter-spacing: .2px; }
+  .lang-tile span { display: block; margin-top: 3px; color: var(--grey); font-size: 12px; }
   .lang-tile:hover { border-color: var(--violet); transform: translateY(-2px); }
-  .lang-tile.sel { border-color: var(--lime); box-shadow: 0 0 0 1px var(--lime); }
+  /* language picks read violet; VYBE picks read lime — same split as the mock */
+  .lang-tile.sel { border-color: var(--violet); box-shadow: 0 0 0 1px var(--violet), 0 10px 30px rgba(115,87,255,.28); }
+  .lang-tile.sel span { color: var(--lime); }
   .lang-tile.qd { animation: pulseRing 1.4s ease-in-out infinite; }
-  .home-vybes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .home-vybes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
   .hv-card {
     position: relative; background: var(--black); border: 1px solid var(--line);
     border-radius: 16px; overflow: hidden; cursor: pointer; text-align: center;
@@ -274,19 +279,31 @@
   }
   .hv-card:hover { transform: translateY(-3px); border-color: #3A3A4A; }
   .hv-card.sel { border-color: var(--lime); box-shadow: 0 0 0 1px var(--lime), 0 10px 34px rgba(216,255,62,.12); }
-  .hv-card img.face { width: 100%; aspect-ratio: 1/.85; object-fit: cover; display: block; }
+  .hv-card img.face { width: 100%; aspect-ratio: 1/1; object-fit: cover; display: block; }
+  /* one control, two states: an empty ring until picked, a lime tick once picked */
   .hv-card .tick2 {
-    position: absolute; top: 10px; right: 10px; width: 24px; height: 24px; border-radius: 50%;
-    background: var(--lime); color: #0A0A0F; font-weight: 700; font-size: 13px;
-    display: none; align-items: center; justify-content: center;
+    position: absolute; top: 11px; right: 11px; width: 26px; height: 26px; border-radius: 50%;
+    background: rgba(10,10,15,.5); border: 1.5px solid rgba(247,247,242,.5); color: transparent;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(4px); transition: all .18s ease;
   }
-  .hv-card.sel .tick2 { display: flex; }
-  .hv-card b { display: block; margin-top: 10px; font-size: 16px; }
-  .hv-card .chip { margin-top: 6px; font-size: 10px; padding: 2px 10px; }
-  .switch-strip { text-align: center; color: var(--grey); font-size: 13.5px; margin: 22px 0 8px; }
+  .hv-card.sel .tick2 { background: var(--lime); border-color: var(--lime); color: var(--black); }
+  .hv-card b {
+    display: block; margin-top: 11px; font-family: var(--font-display);
+    font-size: 17px; font-weight: 700; letter-spacing: .2px; color: #B9A6FF;
+  }
+  .hv-card .chip { margin-top: 7px; font-size: 10px; padding: 3px 11px; letter-spacing: 1.2px; }
+  .hv-card.locked { cursor: not-allowed; opacity: .72; }
+  .hv-card.locked b { color: var(--white); }
+  .hv-card .soon { display: block; margin-top: 7px; color: var(--grey); font-size: 10.5px;
+    letter-spacing: 1.6px; font-weight: 600; }
+  .switch-strip {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    color: var(--mist); font-size: 13.5px; margin: 24px 0 8px;
+  }
   .section-title { font-family: var(--font-display); font-weight: 700; font-style: italic; text-transform: uppercase; font-size: 26px; margin: 54px 0 18px; }
   .section-title .accent { color: var(--lime); }
-  nav.top a { color: var(--mist); text-decoration: none; font-size: 14px; margin-right: 22px; }
+  nav.top a { color: var(--mist); text-decoration: none; font-size: 15px; margin-right: 30px; }
   nav.top a:hover { color: var(--lime); }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
@@ -302,8 +319,8 @@
        onerror="this.outerHTML='<div class=fallback-logo>VYBE</div>'">
   <div class="grow"></div>
   <nav class="top" id="homeNav">
-    <a href="#discover">VYBES</a>
     <a href="#how">How it works</a>
+    <a href="#discover">VYBES</a>
   </nav>
   <span class="pfp" data-icon="user" data-size="22" title="Profile" aria-label="Profile"></span>
 </header>
@@ -318,22 +335,26 @@
         <div class="mega" style="margin-top:16px">Same game.<br>Your <span class="grad">VYBE.</span></div>
         <div class="hero-sub">Pick your language. Pick your vibe.<br>Watch it your way.</div>
         <div class="play-row">
-          <button class="play-cta" id="homeStart" title="Start your VYBE"></button>
-          <div class="play-note">← Start your<br>&nbsp;&nbsp;&nbsp;VYBE</div>
+          <button class="play-cta" id="homeStart" title="Start your VYBE" aria-label="Start your VYBE"
+                  data-icon="play" data-size="34"></button>
+          <div class="play-note">
+            <span class="arrow" data-icon="arrowLeft" data-size="26"></span>
+            <span>Start your<br>VYBE</span>
+          </div>
         </div>
       </div>
     </div>
     <div class="combo">
       <div class="col">
-        <div class="col-title"><span data-icon="globe" data-size="18"></span> CHOOSE LANGUAGE</div>
+        <div class="col-title"><span class="ti violet" data-icon="globe" data-size="20"></span> CHOOSE LANGUAGE</div>
         <div class="lang-grid" id="homeLangs"></div>
       </div>
       <div class="col">
-        <div class="col-title"><div class="wave still" style="height:14px"><i></i><i></i><i></i></div> CHOOSE YOUR <span style="color:var(--lime)">VYBE</span></div>
+        <div class="col-title"><span class="ti lime" data-icon="equalizer" data-size="20"></span> CHOOSE YOUR <span style="color:var(--lime)">VYBE</span></div>
         <div class="home-vybes" id="homeVybes"></div>
       </div>
     </div>
-    <div class="switch-strip">⇄ &nbsp;Switch your VYBE anytime — even mid-match</div>
+    <div class="switch-strip"><span class="ti violet" data-icon="switch" data-size="20"></span><span>Switch your VYBE anytime — even mid-match</span></div>
 
     <div class="container">
       <div class="section-title" id="discover">Meet the <span class="accent">VYBES</span></div>
@@ -470,6 +491,13 @@ const ICON = {
            + '<path d="M5.5 11.5a6.5 6.5 0 0 0 13 0"/><path d="M12 18v3.5M8.5 21.5h7"/>',
   shield:    '<path d="M12 2.7 20 5.8v5.4c0 4.6-3.2 8.4-8 9.9-4.8-1.5-8-5.3-8-9.9V5.8z"/>'
            + '<path d="M9 12l2.2 2.2 4-4.2"/>',
+  equalizer: '<path d="M4 15.5V20M9.3 10.5V20M14.7 6.5V20M20 12.5V20" stroke-width="2.8"/>',
+  check:     '<path d="M5 12.4 9.6 17 19 7.4" stroke-width="2.8"/>',
+  arrowLeft: '<path d="M21 12H4M10 5.5 3.5 12 10 18.5"/>',
+  switch:    '<path d="M3.5 9h13.8M14.2 5.8 17.5 9l-3.3 3.2"/>'
+           + '<path d="M20.5 15H6.7M9.8 11.8 6.5 15l3.3 3.2"/>',
+  lock:      '<rect x="4.5" y="10.5" width="15" height="10" rx="3"/>'
+           + '<path d="M8 10.5V7.8a4 4 0 0 1 8 0v2.7"/>',
 };
 function icon(name, size) {
   size = size || 24;
@@ -563,14 +591,15 @@ function renderHome() {
   hv.innerHTML = (state.avatars || []).map(a => {
     const sel = a.id === state.avatar_id;
     return `<div class="hv-card${sel ? " sel" : ""}" data-hv="${a.id}">
-      <div class="tick2">✓</div>
+      <div class="tick2">${icon("check", 15)}</div>
       <img class="face" src="${a.image || ""}" alt="${a.name}">
       <b>${a.name}</b>
-      <span class="chip">${(a.label || "").replace(" VYBE", "")}</span>
+      <span class="chip chip-violet">${(a.label || "").replace(" VYBE", "")}</span>
     </div>`;
   }).join("");
   for (const c of hv.querySelectorAll("[data-hv]"))
     c.onclick = async () => { await chooseStarter(c.dataset.hv); renderHome(); };
+  paintIcons(hv);
 
   // discover cards (portraits + quotes)
   const dc = $("discoverCards");

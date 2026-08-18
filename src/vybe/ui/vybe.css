@@ -75,13 +75,13 @@ body {
 
 /* ---- badges & chips ---- */
 .badge-live {
-  display: inline-flex; align-items: center; gap: 7px;
-  background: rgba(255,59,78,.14); color: var(--white);
-  border-radius: var(--r-pill); padding: 5px 13px;
-  font-weight: 600; font-size: 12.5px; letter-spacing: .6px;
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(255,59,78,.16); color: var(--white);
+  border-radius: var(--r-pill); padding: 7px 16px;
+  font-weight: 600; font-size: 13px; letter-spacing: 1.2px;
 }
 .badge-live::before {
-  content: ""; width: 8px; height: 8px; border-radius: 50%;
+  content: ""; width: 9px; height: 9px; border-radius: 50%;
   background: var(--red); animation: pulse 1.6s ease-in-out infinite;
 }
 @keyframes pulse { 50% { opacity: .35; } }
