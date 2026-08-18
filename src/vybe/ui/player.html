@@ -118,6 +118,48 @@
   }
   .safety-strip [data-icon] { color: #9B85FF; }
 
+  /* S1 — getting ready */
+  #sReady { padding: 30px 0 40px; }
+  .ready-panel {
+    max-width: 900px; margin: 0 auto; padding: 34px 40px 34px;
+    background: rgba(16,16,22,.82); backdrop-filter: blur(16px);
+    border: 1px solid var(--line); border-radius: 26px; text-align: center;
+  }
+  .ready-emblem {
+    width: 84px; height: 84px; border-radius: 50%; margin: 6px auto 26px;
+    background: var(--black); position: relative;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .ready-emblem::before {
+    content: ""; position: absolute; inset: -2px; border-radius: 50%;
+    background: var(--grad); z-index: -1;
+  }
+  .ready-body { display: flex; align-items: center; gap: 44px; text-align: left; }
+  .ready-face {
+    flex: none; width: 200px; height: 200px; border-radius: 50%; padding: 3px;
+    background: var(--grad); box-shadow: 0 0 46px rgba(115,87,255,.35);
+  }
+  .ready-face img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
+  .ready-copy { flex: 1; min-width: 0; }
+  .ready-copy h1 { font-family: var(--font-display); font-weight: 700; font-size: 40px; letter-spacing: -.5px; }
+  .ready-copy .v { color: #8B6FFF; }
+  .ready-copy .sub { margin-top: 14px; color: var(--mist); font-size: 19px; line-height: 1.6; }
+  .ready-copy .hr { height: 1px; background: var(--line); margin: 26px 0 18px; }
+  .ready-copy .status { display: flex; align-items: center; gap: 14px; color: var(--grey); font-size: 15px; }
+  .ready-note {
+    display: flex; align-items: center; gap: 20px; text-align: left;
+    margin-top: 30px; padding: 20px 24px; border: 1px solid var(--line);
+    border-radius: 18px; background: rgba(10,10,15,.45);
+  }
+  .ready-note [data-icon] { flex: none; color: #8B6FFF; }
+  .ready-note b { display: block; font-size: 17px; font-weight: 600; }
+  .ready-note b .v { color: #8B6FFF; }
+  .ready-note > div > span { display: block; margin-top: 5px; color: var(--grey); font-size: 14.5px; }
+  @media (max-width: 820px) {
+    .ready-body { flex-direction: column; text-align: center; gap: 26px; }
+    .ready-copy .status { justify-content: center; }
+  }
+
   /* S2 — picker */
   #s2 { padding: 34px 0 140px; }
   #s2 .head { display: flex; align-items: flex-end; gap: 24px; margin-bottom: 26px; }
@@ -580,6 +622,52 @@
     </div>
   </section>
 
+  <!-- S1 — VYBE is getting ready (step 2 of 3) -->
+  <section id="sReady" class="screen">
+    <div class="ready-panel">
+      <div class="ready-emblem">
+        <svg viewBox="0 0 40 40" width="38" height="38" fill="none" stroke-linecap="round">
+          <defs><linearGradient id="vg" gradientUnits="userSpaceOnUse" x1="6" y1="0" x2="34" y2="0">
+            <stop offset="0" stop-color="#7357FF"/><stop offset="1" stop-color="#D8FF3E"/>
+          </linearGradient></defs>
+          <g stroke="url(#vg)" stroke-width="3.4">
+            <path d="M8 17v6"><animate attributeName="d" dur="1.5s" repeatCount="indefinite"
+              values="M8 17v6;M8 14v12;M8 17v6"/></path>
+            <path d="M14 12v16"><animate attributeName="d" dur="1.5s" begin=".2s" repeatCount="indefinite"
+              values="M14 12v16;M14 16v8;M14 12v16"/></path>
+            <path d="M20 8v24"><animate attributeName="d" dur="1.5s" begin=".4s" repeatCount="indefinite"
+              values="M20 8v24;M20 13v14;M20 8v24"/></path>
+            <path d="M26 13v14"><animate attributeName="d" dur="1.5s" begin=".6s" repeatCount="indefinite"
+              values="M26 13v14;M26 9v22;M26 13v14"/></path>
+            <path d="M32 17v6"><animate attributeName="d" dur="1.5s" begin=".8s" repeatCount="indefinite"
+              values="M32 17v6;M32 14v12;M32 17v6"/></path>
+          </g>
+        </svg>
+      </div>
+
+      <div class="ready-body">
+        <div class="ready-face"><img id="readyFace" src="" alt=""></div>
+        <div class="ready-copy">
+          <h1><span class="v" id="readyName">Your VYBE</span> is getting ready</h1>
+          <div class="sub">Preparing your <span class="v" id="readyLang">Hindi</span> commentary<br>
+            for the match you shared</div>
+          <div class="hr"></div>
+          <div class="status">
+            <div class="wave" style="height:17px"><i></i><i></i><i></i><i></i></div>
+            <span id="readyStatus">Analysing live audio and fine-tuning commentary…</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ready-note">
+        <span data-icon="headphones" data-size="30"></span>
+        <div><b>Your live commentary will start <span class="v">automatically</span>.</b>
+          <span>Sit tight and enjoy the match!</span></div>
+      </div>
+      <button class="btn btn-cta" id="readyStart" style="display:none;margin-top:18px">Start watching</button>
+    </div>
+  </section>
+
   <!-- S2 — picker (compact, shown while the stream buffers) -->
   <section id="s2" class="screen">
     <div class="card" style="max-width:660px;margin:40px auto;padding:26px">
@@ -969,6 +1057,23 @@ function updateBuffer() {
   const tab = state.video_type === "tab";
   if (tab && captureStart === null) return;
   const at = currentSrcNow();
+
+  // Step 2 runs itself: count down, then open the player without a click.
+  if ($("sReady").classList.contains("active")) {
+    $("readyStatus").textContent = at < -4
+      ? `Analysing live audio and fine-tuning commentary… ${Math.ceil(-at)}s`
+      : "Almost there — your VYBE is warming up…";
+    if (at >= 0) {
+      startWatching().catch((e) => {
+        console.warn("[vybe] auto-start blocked", e);
+        playbackStarted = false;
+        $("readyStatus").textContent = "Ready when you are.";
+        $("readyStart").style.display = "";
+      });
+    }
+    return;
+  }
+
   if (at < 0) {
     $("bufText").textContent = `VYBE in ${Math.ceil(-at)}s — processing your game`;
     $("bufRing").classList.remove("done");
@@ -980,10 +1085,23 @@ function updateBuffer() {
   }
 }
 
+/* ---------------- getting ready (step 2) ---------------- */
+function renderReady() {
+  const a = (state.avatars || []).find((x) => x.id === state.avatar_id);
+  const l = LANGS.find((x) => x.code === (pendingLang || activeLang || state.language || "hi"));
+  if (a) {
+    $("readyName").textContent = a.name;
+    $("readyFace").src = a.image || "";
+    $("readyFace").alt = a.name;
+  }
+  if (l) $("readyLang").textContent = l.en;
+}
+
 /* ---------------- capture (tab mode) ---------------- */
 $("shareBtn").onclick = async () => {
   try { await startTabCapture(); } catch (e) { return; }
-  show("s2");
+  renderReady();
+  show("sReady");
 };
 
 async function startTabCapture() {
@@ -1252,7 +1370,7 @@ async function scheduleSegments() {
 }
 
 /* ---------------- start watching ---------------- */
-$("startBtn").onclick = async () => {
+async function startWatching() {
   if (!state || playbackStarted) return;
   playbackStarted = true;
   const tabMode = state.video_type === "tab";
@@ -1281,7 +1399,9 @@ $("startBtn").onclick = async () => {
       video.currentTime = Math.max(0, currentSrcNow());
     }
   }, 1000);
-};
+}
+$("startBtn").onclick = startWatching;
+$("readyStart").onclick = () => { playbackStarted = false; startWatching(); };
 
 /* ---------------- rail ---------------- */
 function renderRail() {
