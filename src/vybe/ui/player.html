@@ -198,30 +198,36 @@
   .stage { position: relative; background: #000; border-radius: 16px; overflow: hidden; margin-top: 18px; }
   .stage video { width: 100%; display: block; }
   .controlbar {
-    position: absolute; left: 0; right: 0; bottom: 0;
-    padding: 12px 16px; display: flex; align-items: center; gap: 14px;
-    background: linear-gradient(transparent, rgba(10,10,15,.88));
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 25;
+    padding: 26px 26px 20px; display: flex; flex-direction: column; gap: 16px;
+    background: linear-gradient(transparent, rgba(10,10,15,.9) 55%);
   }
+  .ctlrow { display: flex; align-items: center; gap: 18px; }
+  .controlbar { transition: padding-right .28s cubic-bezier(.22,.9,.3,1); }
+  .stage.ch-open .controlbar { padding-right: 440px; }
+  @media (max-width: 900px) { .stage.ch-open .controlbar { padding-right: 26px; opacity: 0; pointer-events: none; } }
   .pp {
-    width: 42px; height: 42px; flex: none; border-radius: 50%; border: none; padding: 0;
-    background: var(--violet); color: var(--white); cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: transform .18s ease, box-shadow .18s ease;
+    width: 62px; height: 62px; flex: none; border-radius: 50%; padding: 0;
+    background: rgba(10,10,15,.5); border: 2px solid var(--violet); color: var(--violet);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
   }
-  .pp:hover { transform: scale(1.06); box-shadow: 0 6px 18px rgba(115, 87, 255, .5); }
-  .strip { flex: 1; height: 5px; border-radius: 3px; background: var(--slate-2); overflow: hidden; position: relative; }
+  .pp:hover { transform: scale(1.05); background: rgba(115,87,255,.18);
+    box-shadow: 0 0 26px rgba(115,87,255,.45); }
+  /* live seek line: filled to the live edge, knob parked there */
+  .strip { position: relative; height: 5px; border-radius: 3px; background: rgba(247,247,242,.22); }
   .strip::before {
-    content: ""; position: absolute; inset: 0;
-    background: var(--grad); border-radius: 3px;
+    content: ""; position: absolute; inset: 0; right: 12px;
+    background: var(--violet); border-radius: 3px;
   }
   .strip::after {
-    content: ""; position: absolute; top: 0; bottom: 0; width: 60px;
-    background: linear-gradient(90deg, transparent, rgba(247,247,242,.5), transparent);
-    animation: sheen 2.4s linear infinite;
+    content: ""; position: absolute; right: 0; top: 50%; width: 15px; height: 15px;
+    border-radius: 50%; background: var(--white); transform: translateY(-50%);
+    box-shadow: 0 2px 8px rgba(0,0,0,.6);
   }
-  @keyframes sheen { from { left: -60px; } to { left: 100%; } }
+  .tcode { font-size: 15px; color: var(--white); font-variant-numeric: tabular-nums; }
   .ctl {
-    width: 40px; height: 40px; flex: none; padding: 0; cursor: pointer;
+    width: 44px; height: 44px; flex: none; padding: 0; cursor: pointer;
     border: 1px solid transparent; border-radius: 12px;
     background: rgba(247, 247, 242, .10); color: var(--white);
     display: flex; align-items: center; justify-content: center;
@@ -230,10 +236,20 @@
   .ctl:hover { background: rgba(247, 247, 242, .22); transform: translateY(-1px); }
   .ctl:active { transform: translateY(0); }
   .ctl.active { color: var(--lime); background: rgba(216, 255, 62, .16); border-color: rgba(216, 255, 62, .5); }
-  .controlbar { align-items: center; }
+  .controlbar { align-items: stretch; }
   .controlbar .ctl { filter: drop-shadow(0 1px 4px rgba(0, 0, 0, .55)); }
   .volwrap { display: flex; align-items: center; gap: 10px; }
-  input.vol { width: 86px; accent-color: var(--violet); }
+  input.vol {
+    width: 116px; height: 5px; -webkit-appearance: none; appearance: none;
+    border-radius: 3px; background: rgba(247,247,242,.25); cursor: pointer;
+  }
+  input.vol::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+    background: var(--lime); box-shadow: 0 0 0 3px rgba(216,255,62,.2); cursor: pointer;
+  }
+  input.vol::-moz-range-thumb {
+    width: 14px; height: 14px; border: none; border-radius: 50%; background: var(--lime);
+  }
   .rail { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
   .rail .mini-card {
     display: flex; align-items: center; gap: 12px; padding: 10px 16px 10px 10px;
@@ -304,21 +320,66 @@
   .chip-lang.off { border-color: var(--line); color: var(--grey); }
   .chip-lang.off:hover { border-color: var(--violet); color: var(--white); }
   .chip-lang .spin { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--slate-2); border-top-color: var(--lime); animation: spin 1s linear infinite; }
-  /* fullscreen chrome */
-  .fs-only { display: none !important; }
-  .stage:fullscreen .fs-only, .stage:-webkit-full-screen .fs-only { display: flex !important; }
-  .fs-logo { position: absolute; top: 18px; left: 18px; height: 38px; opacity: .45; z-index: 20; pointer-events: none; }
-  .fs-chooser { position: absolute; top: 16px; right: 16px; z-index: 21; flex-direction: column; align-items: flex-end; gap: 10px; }
-  .fs-toggle { width: 46px; height: 46px; flex: none; padding: 0; border-radius: 50%; background: rgba(23,23,31,.85); border: 1px solid var(--line); color: var(--white); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: border-color .18s ease, background .18s ease; }
-  .fs-toggle:hover { border-color: var(--violet); }
-  .fs-panel { background: rgba(10,10,15,.94); border: 1px solid var(--line); border-radius: 14px; padding: 16px; width: 330px; display: none; }
-  .fs-panel.open { display: block; animation: fadeUp .25s ease both; }
-  .fs-vybe { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; border: 1px solid transparent; cursor: pointer; transition: all .15s ease; }
-  .fs-vybe:hover { background: var(--slate-2); }
-  .fs-vybe.active { border-color: var(--lime); }
-  .fs-vybe.queued { animation: pulseRing 1.4s ease-in-out infinite; border-radius: 10px; }
-  .fs-vybe .thumb { width: 34px; height: 34px; border-radius: 50%; overflow: hidden; flex: none; }
-  .fs-vybe .thumb img { width: 100%; height: 100%; object-fit: cover; }
+  /* stage chrome — logo and LIVE ride on the video, in and out of fullscreen */
+  .stage-logo { position: absolute; top: 20px; left: 22px; height: 34px; z-index: 20; pointer-events: none;
+    filter: drop-shadow(0 2px 10px rgba(0,0,0,.8)); }
+  .stage-live { position: absolute; top: 64px; left: 24px; z-index: 20; pointer-events: none;
+    display: flex; align-items: center; gap: 9px; color: var(--white);
+    font-size: 15px; font-weight: 600; letter-spacing: 1.4px;
+    text-shadow: 0 2px 10px rgba(0,0,0,.9); }
+  .stage-live i { width: 9px; height: 9px; border-radius: 50%; background: var(--red);
+    animation: pulse 1.6s ease-in-out infinite; }
+
+  /* the chooser is an overlay on the video — it never resizes the player */
+  .chooser {
+    position: absolute; top: 14px; right: 14px; bottom: 14px; width: 400px; max-width: 46%;
+    z-index: 30; display: flex; flex-direction: column; padding: 22px 22px 16px;
+    background: rgba(14,14,20,.93); backdrop-filter: blur(18px);
+    border: 1px solid var(--line); border-radius: 20px;
+    transform: translateX(calc(100% + 20px)); opacity: 0; pointer-events: none;
+    transition: transform .28s cubic-bezier(.22,.9,.3,1), opacity .28s ease;
+  }
+  .chooser.open { transform: none; opacity: 1; pointer-events: auto; }
+  .ch-head { display: flex; align-items: flex-start; gap: 14px; }
+  .ch-title { font-family: var(--font-display); font-weight: 700; font-size: 23px; }
+  .ch-title .gi { font-style: italic; background: var(--grad);
+    -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .ch-sub { color: var(--grey); font-size: 13.5px; margin-top: 5px; }
+  .ch-close {
+    margin-left: auto; flex: none; width: 34px; height: 34px; border-radius: 10px; padding: 0;
+    background: none; border: 1px solid transparent; color: var(--grey); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; transition: all .16s ease;
+  }
+  .ch-close:hover { color: var(--white); border-color: var(--line); background: rgba(247,247,242,.06); }
+  .ch-sec { display: flex; align-items: center; gap: 11px; margin: 22px 0 12px;
+    font-size: 16px; font-weight: 600; }
+  .ch-hr { height: 1px; background: var(--line); margin-top: 22px; }
+  .ch-langs { display: flex; flex-wrap: wrap; gap: 9px; }
+  .ch-langs .chip-lang { padding: 9px 17px; font-size: 14.5px; gap: 7px; }
+  .ch-body { scrollbar-width: thin; scrollbar-color: #33333F transparent; }
+  .ch-body { overflow-y: auto; flex: 1; margin-right: -8px; padding-right: 8px; }
+  .ch-vybes { display: flex; flex-direction: column; gap: 10px; }
+  .ch-row {
+    display: flex; align-items: center; gap: 14px; padding: 11px 14px; cursor: pointer;
+    border: 1px solid var(--line); border-radius: 14px; background: rgba(23,23,31,.75);
+    transition: border-color .16s ease, background .16s ease, transform .16s ease;
+  }
+  .ch-row:hover { border-color: #3A3A4A; transform: translateX(-2px); }
+  .ch-row.active { border-color: var(--lime); background: rgba(216,255,62,.07); }
+  .ch-row.queued { animation: pulseRing 1.4s ease-in-out infinite; }
+  .ch-row .thumb { width: 52px; height: 52px; border-radius: 50%; overflow: hidden; flex: none;
+    border: 1px solid var(--line); }
+  .ch-row .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .ch-row .nm { display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 600; }
+  .ch-row .role { display: block; margin-top: 3px; color: var(--grey); font-size: 13.5px; }
+  .ch-row .tag { font-size: 10.5px; font-weight: 700; letter-spacing: 1.2px; color: #B9A6FF;
+    border: 1px solid rgba(115,87,255,.55); background: rgba(115,87,255,.16);
+    border-radius: 6px; padding: 3px 8px; }
+  .ch-row .meter { margin-left: auto; color: #3F3F4C; }
+  .ch-row.active .meter { color: var(--lime); }
+  .ch-row.queued .meter { color: #B9A6FF; }
+  @media (max-width: 900px) { .chooser { width: auto; left: 14px; max-width: none; } }
+
   /* homepage */
   #sHome { margin: 0 calc(50% - 50vw); }   /* break out of the app container */
   body { overflow-x: hidden; }             /* the breakout must never scroll sideways */
@@ -693,32 +754,45 @@
   <section id="s3" class="screen">
     <div class="stage" id="stage">
       <video id="video" playsinline preload="auto"></video>
-      <img class="fs-logo fs-only" src="/ui/logo.png" alt="">
-      <div class="fs-chooser fs-only">
-        <button class="fs-toggle" id="fsChooserBtn" title="Switch VYBE or language" aria-label="Switch VYBE or language" data-icon="sliders" data-size="22"></button>
-        <div class="fs-panel" id="fsPanel">
-          <div class="small" style="letter-spacing:1.5px;font-weight:600">LANGUAGE</div>
-          <div class="row" style="margin:8px 0 14px;flex-wrap:wrap" id="fsLangs"></div>
-          <div class="small" style="letter-spacing:1.5px;font-weight:600;margin-bottom:6px">YOUR VYBE</div>
-          <div id="fsVybes"></div>
+      <img class="stage-logo" src="/ui/logo.png" alt="VYBE">
+      <div class="stage-live"><i></i> LIVE</div>
+
+      <aside class="chooser" id="chooser">
+        <div class="ch-head">
+          <div>
+            <div class="ch-title">Choose your <span class="gi">VYBE</span></div>
+            <div class="ch-sub">Change language or commentator anytime.</div>
+          </div>
+          <button class="ch-close" id="chClose" title="Close" aria-label="Close"
+                  data-icon="close" data-size="20"></button>
         </div>
-      </div>
+        <div class="ch-body">
+          <div class="ch-sec"><span class="ti violet" data-icon="globe" data-size="21"></span> Language</div>
+          <div class="ch-langs" id="chLangs"></div>
+          <div class="ch-hr"></div>
+          <div class="ch-sec"><span class="ti violet" data-icon="waves" data-size="21"></span> VYBE</div>
+          <div class="ch-vybes" id="chVybes"></div>
+        </div>
+      </aside>
+
       <div class="cc" id="caption"></div>
       <div class="controlbar" id="bar">
-        <button class="pp" id="ppBtn" title="Pause" aria-label="Pause" data-icon="pause" data-size="20"></button>
-        <span class="small" id="barTime" style="color:var(--white)">0:00</span>
         <div class="strip" title="Live streaming"></div>
-        <span class="small" style="color:var(--lime)" id="barLag">Live streaming</span>
-        <button class="ctl ccbtn active" id="ccBtn" title="Captions" aria-label="Captions" data-icon="cc"></button>
-        <div class="volwrap">
-          <button class="ctl" id="muteBtn" title="Mute" aria-label="Mute" data-icon="volume"></button>
-          <input class="vol" id="vol" type="range" min="0" max="1" step="0.02" value="1" title="Volume">
+        <div class="ctlrow">
+          <button class="pp" id="ppBtn" title="Pause" aria-label="Pause" data-icon="pause" data-size="24"></button>
+          <div class="volwrap">
+            <button class="ctl" id="muteBtn" title="Mute" aria-label="Mute" data-icon="volume"></button>
+            <input class="vol" id="vol" type="range" min="0" max="1" step="0.02" value="1" title="Volume">
+          </div>
+          <span class="tcode" id="barTime">0:00</span>
+          <span class="small" style="color:var(--lime)" id="barLag">Live streaming</span>
+          <div class="grow"></div>
+          <button class="ctl ccbtn active" id="ccBtn" title="Captions" aria-label="Captions" data-icon="cc"></button>
+          <button class="ctl" id="gearBtn" title="Choose your VYBE" aria-label="Choose your VYBE" data-icon="gear"></button>
+          <button class="ctl" id="fsBtn" title="Fullscreen" aria-label="Fullscreen" data-icon="maximize"></button>
         </div>
-        <button class="ctl" id="fsBtn" title="Fullscreen" aria-label="Fullscreen" data-icon="maximize"></button>
       </div>
     </div>
-    <div class="row" id="langsPlay" style="margin-top:16px;flex-wrap:wrap"></div>
-    <div class="rail" id="rail"></div>
     <div class="meta small">
       <span id="segCount">0 segments</span>
       <span id="modeLabel">mode: original</span>
@@ -773,6 +847,15 @@ const ICON = {
   upload:    '<path d="M12 15.5V4.8M8.2 8.4 12 4.6l3.8 3.8"/>'
            + '<path d="M4.6 14.6v2.9a3 3 0 0 0 3 3h8.8a3 3 0 0 0 3-3v-2.9"/>',
   waves:     '<path d="M4 10.6v2.8M8 8v8M12 5.2v13.6M16 8v8M20 10.6v2.8" stroke-width="2.4"/>',
+  gear:      '<circle cx="12" cy="12" r="3.4"/>'
+           + '<path d="M19.6 14.6a1.6 1.6 0 0 0 .32 1.77l.06.06a1.95 1.95 0 1 1-2.76 2.76l-.06-.06a1.6 1.6 0 0 0'
+           + '-1.77-.32 1.6 1.6 0 0 0-.97 1.47v.17a1.95 1.95 0 0 1-3.9 0v-.09a1.6 1.6 0 0 0-1.05-1.47 1.6 1.6 0 0 0'
+           + '-1.77.32l-.06.06a1.95 1.95 0 1 1-2.76-2.76l.06-.06a1.6 1.6 0 0 0 .32-1.77 1.6 1.6 0 0 0-1.47-.97H3.5'
+           + 'a1.95 1.95 0 0 1 0-3.9h.09a1.6 1.6 0 0 0 1.47-1.05 1.6 1.6 0 0 0-.32-1.77l-.06-.06a1.95 1.95 0 1 1'
+           + ' 2.76-2.76l.06.06a1.6 1.6 0 0 0 1.77.32h.08a1.6 1.6 0 0 0 .97-1.47V3.5a1.95 1.95 0 0 1 3.9 0v.09'
+           + 'a1.6 1.6 0 0 0 .97 1.47 1.6 1.6 0 0 0 1.77-.32l.06-.06a1.95 1.95 0 1 1 2.76 2.76l-.06.06a1.6 1.6 0 0 0'
+           + '-.32 1.77v.08a1.6 1.6 0 0 0 1.47.97h.17a1.95 1.95 0 0 1 0 3.9h-.09a1.6 1.6 0 0 0-1.47.97z"/>',
+  close:     '<path d="M5.8 5.8 18.2 18.2M18.2 5.8 5.8 18.2"/>',
   headphones:'<path d="M4 15.5v-3a8 8 0 0 1 16 0v3"/>'
            + '<rect x="2.5" y="13.8" width="5" height="7.2" rx="2.5"/>'
            + '<rect x="16.5" y="13.8" width="5" height="7.2" rx="2.5"/>',
@@ -931,15 +1014,18 @@ function toast(msg) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove("show"), 3200);
 }
-function renderLangs(containerId) {
+function renderLangs(containerId, compact) {
   const el = $(containerId);
   if (!el) return;
   const active = activeLang;
   const queued = pendingLang;
   el.innerHTML = LANGS.map(l => {
     const isActive = l.code === active, isQueued = l.code === queued;
+    const label = compact
+      ? `${l.native}${isActive ? " " + icon("check", 14) : ""}`
+      : `${l.native} <span class="en-name">(${l.en})</span>`;
     return `<span class="chip-lang${isActive ? "" : " off"}${isQueued ? " queued" : ""}" data-lang="${l.code}">
-      ${l.native} <span class="en-name">(${l.en})</span>${isQueued ? '<span class="spin"></span>' : ""}</span>`;
+      ${label}${isQueued ? '<span class="spin"></span>' : ""}</span>`;
   }).join("");
   for (const c of el.querySelectorAll("[data-lang]")) {
     c.onclick = () => requestLang(c.dataset.lang);
@@ -981,23 +1067,30 @@ async function requestVybe(id) {
 }
 
 function renderAllChoosers() {
-  renderLangs("langsPick"); renderLangs("langsPlay"); renderLangs("fsLangs");
-  if (playbackStarted) { renderRail(); renderFsVybes(); }
+  renderLangs("langsPick");
+  renderLangs("chLangs", true);
+  if (playbackStarted) { renderRail(); renderChooserVybes(); }
 }
 
-function renderFsVybes() {
-  const el = $("fsVybes");
+function renderChooserVybes() {
+  const el = $("chVybes");
   if (!el) return;
-  const items = [{ id: "original", name: "Original", image: "/brand/generated/waveform-emblem.png" }]
-    .concat(state.avatars || []);
+  const live = mode === "vybe" ? (activeVybeId || state.avatar_id) : "original";
+  const items = (state.avatars || []).slice()
+    .sort((a, b) => (b.id === live) - (a.id === live))
+    .concat([{ id: "original", name: "Original", label: "Official feed",
+               image: "/brand/generated/waveform-emblem.png" }]);
   el.innerHTML = items.map(v => {
     const active = (v.id === "original" && mode === "original") ||
                    (mode === "vybe" && v.id === (activeVybeId || state.avatar_id));
     const q = v.id === pendingVybe;
-    return `<div class="fs-vybe${active ? " active" : ""}${q ? " queued" : ""}" data-fsv="${v.id}">
-      <div class="thumb"><img src="${v.image || ""}"></div>
-      <b style="font-size:14px">${v.name}</b>
-      ${q ? '<span class="small" style="margin-left:auto">warming up…</span>' : ""}
+    const role = v.id === "original" ? "Official feed" : (v.label || "");
+    const tag = q ? '<span class="tag">WARMING UP</span>'
+              : active ? '<span class="tag">ACTIVE</span>' : "";
+    return `<div class="ch-row${active ? " active" : ""}${q ? " queued" : ""}" data-fsv="${v.id}">
+      <div class="thumb"><img src="${v.image || ""}" alt=""></div>
+      <div><span class="nm">${v.name} ${tag}</span><span class="role">${role}</span></div>
+      <span class="meter">${icon("waves", 24)}</span>
     </div>`;
   }).join("");
   for (const r of el.querySelectorAll("[data-fsv]")) {
@@ -1409,6 +1502,7 @@ function renderRail() {
   const items = [{ id: "original", name: "Original", label: "Official feed",
                    image: "/brand/generated/waveform-emblem.png" }]
     .concat(state.avatars || []);
+  if (!$("rail")) return;
   $("rail").innerHTML = items.map(v => {
     const active = (v.id === "original" && mode === "original") ||
                    (mode === "vybe" && v.id === (activeVybeId || state.avatar_id));
@@ -1467,9 +1561,13 @@ video.addEventListener("click", togglePlay);
 let lastVol = 1;
 function applyVolume(v) {
   if (gainMaster) gainMaster.gain.value = v;
+  const pct = Math.round(v * 100);
+  $("vol").style.background =
+    `linear-gradient(90deg, var(--violet) 0 ${pct}%, rgba(247,247,242,.25) ${pct}% 100%)`;
   setIcon("muteBtn", v > 0.001 ? "volume" : "mute", 24, v > 0.001 ? "Mute" : "Unmute");
 }
 $("vol").oninput = () => applyVolume(parseFloat($("vol").value));
+applyVolume(1);
 $("muteBtn").onclick = () => {
   const v = parseFloat($("vol").value);
   if (v > 0.001) { lastVol = v; $("vol").value = 0; applyVolume(0); }
@@ -1479,11 +1577,19 @@ document.addEventListener("fullscreenchange", () => {
   const on = !!document.fullscreenElement;
   setIcon("fsBtn", on ? "minimize" : "maximize", 24, on ? "Exit fullscreen" : "Fullscreen");
 });
-$("fsChooserBtn").onclick = () => {
-  $("fsPanel").classList.toggle("open");
-  renderLangs("fsLangs");
-  renderFsVybes();
-};
+function toggleChooser(open) {
+  const el = $("chooser");
+  const show = open === undefined ? !el.classList.contains("open") : open;
+  el.classList.toggle("open", show);
+  $("stage").classList.toggle("ch-open", show);
+  $("gearBtn").classList.toggle("active", show);
+  if (show) { renderLangs("chLangs", true); renderChooserVybes(); }
+}
+$("gearBtn").onclick = () => toggleChooser();
+$("chClose").onclick = () => toggleChooser(false);
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && $("chooser").classList.contains("open")) toggleChooser(false);
+});
 $("ccBtn").onclick = () => {
   ccOn = !ccOn;
   $("ccBtn").classList.toggle("active", ccOn);
