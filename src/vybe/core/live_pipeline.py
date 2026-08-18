@@ -69,6 +69,9 @@ class LiveSession:
         self.language = "hi"
         self._pending_lang: str | None = None
         self.tts = self.lanes[0]["tts"]  # primary lane alias (replay, usage)
+        # One narrative memory for the whole match, shared by every lane.
+        self.history: list[tuple[float, str]] = []
+        self._switch_mark: tuple[str, float] | None = None
 
     def _make_lane(self, avatar: Avatar) -> dict:
         return {"id": avatar.id, "avatar": avatar,
@@ -165,7 +168,8 @@ class LiveSession:
             self.language = lang
             for lane in self.lanes:
                 if lane["director"] is not None and getattr(self, "llm", None):
-                    lane["director"] = Director(self.llm, lane["avatar"], self.language)
+                    lane["director"] = Director(self.llm, lane["avatar"], self.language,
+                                                history=self.history)
             with self.lock:
                 self._pending_lang = None
                 self.manifest["language"] = lang
@@ -179,7 +183,8 @@ class LiveSession:
             lane = self._make_lane(load_avatar(self.cfg.get("default_language", "hi"), pending))
             self.lanes.append(lane)
         if lane["director"] is None and getattr(self, "llm", None):
-            lane["director"] = Director(self.llm, lane["avatar"], self.language)
+            lane["director"] = Director(self.llm, lane["avatar"], self.language,
+                                        history=self.history)
         with self.lock:
             self.active_idx = self.lanes.index(lane)
             self._pending_id = None
@@ -187,6 +192,7 @@ class LiveSession:
             self.manifest["avatar"] = lane["avatar"].name
             self.manifest["avatar_id"] = lane["id"]
             self.manifest["active_vybes"] = [lane["id"]]
+        self._switch_mark = (lane["id"], time.time())
         print(f"[pipeline] VYBE on the mic: {lane['id']}")
 
     def abandon(self) -> None:
@@ -264,7 +270,12 @@ class LiveSession:
         with self.lock:
             lane["prev_text"] = (lane["prev_text"] + " " + seg.text)[-500:]
         print(f"[pipeline] published [{lane['id']}] anchor={seg.anchor:6.2f}s lead={lead:4.1f}s  {seg.text[:50]}")
-        burn = self.tts.billed_last(1800)
+        mark = self._switch_mark
+        if mark and mark[0] == lane["id"]:
+            self._switch_mark = None
+            print(f"[switch] {lane['id']} first line {ready_at - mark[1]:.1f}s after "
+                  f"taking the mic (anchor={seg.anchor:.2f}s, lead={lead:.1f}s)")
+        burn = sum(l["tts"].billed_last(1800) for l in self.lanes)
         if burn > CREDIT_ALERT_30MIN and not getattr(self, "_credit_alerted", False):
             self._credit_alerted = True
             print(f"[cost] ⚠⚠⚠ HIGH BURN: {burn:,} credits in the last 30 minutes "
@@ -410,7 +421,8 @@ class LiveSession:
         # selection takes effect.
         self._activate_pending()   # pre-start language/VYBE choices apply
         self.lanes[self.active_idx]["director"] = Director(
-            self.llm, self.lanes[self.active_idx]["avatar"], self.language)
+            self.llm, self.lanes[self.active_idx]["avatar"], self.language,
+            history=self.history)
 
         def clocked_chunks():
             first = True
@@ -457,7 +469,16 @@ class LiveSession:
                 lane = self.lanes[self.active_idx]
                 view = beats[: i + 2] if i + 1 < len(beats) else beats
                 processed = i + 1
+                call_started = time.time()
                 seg = lane["director"].segment_for(view, i)
+                took = time.time() - call_started
+                # Writer lag: how far behind the live edge this beat closed.
+                # Compare it with the delay budget — the render still needs
+                # ~3.5s after this returns.
+                edge_lag = (time.time() - self.t0) - beats[i].start if self.t0 else 0.0
+                if took > 2.5 or edge_lag > self.delay - 6:
+                    print(f"[director] [{lane['id']}] beat {beats[i].start:.2f}s "
+                          f"took {took:.1f}s, {edge_lag:.1f}s behind the live edge")
                 if seg:
                     seg.lang = lane["director"].language
                     tts_pool.submit(self._render_and_publish, seg, lane)

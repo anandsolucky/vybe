@@ -229,12 +229,17 @@ def parse_reply(raw: str) -> dict:
 
 
 class Director:
-    def __init__(self, llm, avatar: Avatar, language: str = "hi"):
+    def __init__(self, llm, avatar: Avatar, language: str = "hi",
+                 history: list | None = None):
         self.llm = llm
         self.avatar = avatar
         self.language = language
         self.system = system_prompt(avatar, language)
-        self.previous: list[tuple[float, str]] = []
+        # The narrative memory belongs to the MATCH, not to one VYBE. A
+        # lane that takes the mic mid-match must see what was already said,
+        # or it opens with generic scene-setting while the picture has
+        # moved on. Callers pass one shared list for every lane.
+        self.previous: list[tuple[float, str]] = [] if history is None else history
 
     def slot_for(self, beats: list[Beat], index: int) -> float:
         anchor = beats[index].start
