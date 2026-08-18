@@ -1,0 +1,22 @@
+{
+  "name": "VYBE",
+  "short_name": "VYBE",
+  "description": "Same game. Your vibe.",
+  "icons": [
+    {
+      "src": "/brand/favicon/web-app-manifest-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/brand/favicon/web-app-manifest-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "theme_color": "#0A0A0F",
+  "background_color": "#0A0A0F",
+  "display": "standalone"
+}

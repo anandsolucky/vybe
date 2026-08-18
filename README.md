@@ -18,8 +18,6 @@ dropped, never delayed — playback stays glass-smooth by design.
 > Every "live" stream is already 15–40 seconds behind the stadium.
 > VYBE does all of its work inside that gap.
 
-*Demo video: coming with the launch post.*
-
 ## What it does
 
 - **Pick a sport.** Cricket and football ship. A sport is a director

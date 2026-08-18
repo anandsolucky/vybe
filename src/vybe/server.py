@@ -23,6 +23,7 @@ def make_handler(holder, source_path: str, session_dir: Path):
 
         MIME = {"css": "text/css", "js": "application/javascript",
                 "woff2": "font/woff2", "png": "image/png", "svg": "image/svg+xml",
+                "ico": "image/x-icon", "webmanifest": "application/manifest+json",
                 "html": "text/html; charset=utf-8"}
 
         def _send_static(self, base: Path, rel: str) -> None:
@@ -75,6 +76,8 @@ def make_handler(holder, source_path: str, session_dir: Path):
                            "application/javascript")
             elif self.path.startswith("/ui/"):
                 self._send_static(UI_DIR, self.path[4:])
+            elif self.path == "/favicon.ico":
+                self._send_static(UI_DIR.parents[2] / "brand" / "assets", "favicon/favicon.ico")
             elif self.path.startswith("/brand/"):
                 self._send_static(UI_DIR.parents[2] / "brand" / "assets", self.path[7:])
             elif self.path == "/state":
