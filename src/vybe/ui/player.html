@@ -654,7 +654,7 @@
         <div class="s0-left">
           <div class="glyph" data-icon="windowOut" data-size="54"></div>
           <h1>Let's get the game on <span class="grad">VYBE</span></h1>
-          <div class="sub">To bring you live commentary in your vibe,<br>
+          <div class="sub">To bring you the game in your vibe,<br>
             we need access to the match stream.</div>
 
           <div class="steplist">
@@ -685,7 +685,7 @@
           <label class="par-row" for="parBox">
             <input type="checkbox" id="parBox">
             <span class="par-txt"><b>Parallel VYBES — instant switching</b>
-            All commentators perform every moment, so switching is immediate.
+            Every VYBE performs every moment, so switching is immediate.
             <em>⚠ Uses about 3× the credits. Demo sessions only.</em></span>
           </label>
 
@@ -743,19 +743,19 @@
         <div class="ready-face"><img id="readyFace" src="" alt=""></div>
         <div class="ready-copy">
           <h1><span class="v" id="readyName">Your VYBE</span> is getting ready</h1>
-          <div class="sub">Preparing your <span class="v" id="readyLang">Hindi</span> commentary<br>
+          <div class="sub">Shaping your <span class="v" id="readyLang">Hindi</span> experience<br>
             for the match you shared</div>
           <div class="hr"></div>
           <div class="status">
             <div class="wave" style="height:17px"><i></i><i></i><i></i><i></i></div>
-            <span id="readyStatus">Analysing live audio and fine-tuning commentary…</span>
+            <span id="readyStatus">Reading the game and tuning your VYBE…</span>
           </div>
         </div>
       </div>
 
       <div class="ready-note">
         <span data-icon="headphones" data-size="30"></span>
-        <div><b>Your live commentary will start <span class="v">automatically</span>.</b>
+        <div><b>Your VYBE takes the mic <span class="v">automatically</span>.</b>
           <span>Sit tight and enjoy the match!</span></div>
       </div>
       <button class="btn btn-cta" id="readyStart" style="display:none;margin-top:18px">Start watching</button>
@@ -794,7 +794,7 @@
         <div class="ch-head">
           <div>
             <div class="ch-title">Choose your <span class="gi">VYBE</span></div>
-            <div class="ch-sub">Change language or commentator anytime.</div>
+            <div class="ch-sub">Change language or VYBE anytime.</div>
           </div>
           <button class="ch-close" id="chClose" title="Close" aria-label="Close"
                   data-icon="close" data-size="20"></button>
@@ -1205,7 +1205,7 @@ let pipelineErrorShown = false;
 function checkPipelineError() {
   if (!state || !state.pipeline_error || pipelineErrorShown) return;
   pipelineErrorShown = true;
-  toast("⚠ The commentary engine hit an error — go Home to restart the session");
+  toast("⚠ Your VYBE hit a glitch — go Home to restart the session");
 }
 
 function updateBuffer() {
@@ -1218,7 +1218,7 @@ function updateBuffer() {
   // Step 2 runs itself: count down, then open the player without a click.
   if ($("sReady").classList.contains("active")) {
     $("readyStatus").textContent = at < -4
-      ? `Analysing live audio and fine-tuning commentary… ${Math.ceil(-at)}s`
+      ? `Reading the game and tuning your VYBE… ${Math.ceil(-at)}s`
       : "Almost there — your VYBE is warming up…";
     if (at >= 0) {
       startWatching().catch((e) => {

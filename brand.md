@@ -61,16 +61,25 @@ The customer-facing story is:
 
 ### Category Language
 Preferred:
+- The personalized live-sports experience
 - Personalized live sports
-- Personalized sports commentary
-- Choose-your-voice sports
+- Watch it your way / sports, your way
 - A new way to experience live sports
 
 Avoid leading with:
+- Commentary as the product noun (see the rule below)
 - AI dubbing platform
 - Multilingual localization platform
 - Neural voice synthesis
 - AI commentary infrastructure
+
+**The experience rule (added 2026-08-18):** commentary is the mechanism,
+not the product. Nobody buys commentary; fans buy the game in their
+language, their energy, their vibe. Consumer surfaces sell the
+EXPERIENCE — "commentary" and "commentator" may appear in technical
+docs and deep product copy, never as the headline noun of a consumer
+message. When a consumer line needs the concept, say "your VYBE" or
+"the match, your way".
 
 Technical language can explain the product deeper in the funnel. It should not define the brand.
 
@@ -79,7 +88,7 @@ Technical language can explain the product deeper in the funnel. It should not d
 ## 3. Brand Promise
 
 ### Functional Promise
-Hear the live game in a language and commentary style that feels natural to you.
+Experience the live game in the language and energy that feel natural to you.
 
 ### Emotional Promise
 You do not have to experience the game the same way as everyone else.

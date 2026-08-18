@@ -2,11 +2,14 @@
 
 **Same game. Your vibe.**
 
-Watch any live sports stream and choose who calls it. VYBE captures the
-stream, delays it 15 seconds, and replaces the commentary with an AI
-persona — in your language, with real emotion, synced to the action.
-The original commentator is gone. The crowd stays. You can switch
-commentators and languages mid-match.
+VYBE is the personalized live-sports experience: watch any live match in
+your language, with your energy, called by the voice you choose. Not a
+translation — a different way to experience the same game.
+
+Under the hood: VYBE captures the stream, delays it 15 seconds, and
+replaces the commentary with an AI persona — synced to the action, with
+real emotion. The original commentator is gone. The crowd stays. You can
+switch VYBES and languages mid-match.
 
 Once the match starts there is no lag, no stutter, no buffering: the
 video never waits for the AI. A line that cannot make its slot is
