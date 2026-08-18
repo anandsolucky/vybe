@@ -44,6 +44,8 @@ dropped, never delayed — playback stays glass-smooth by design.
 
 ## How it works
 
+![The VYBE engine: listen, understand, write, perform, sync — all inside the stream's 15-second delay](brand/assets/vybe-engine.png)
+
 ```
 Chrome tab ──► PCM ingest ──► streaming ASR ──► beat segmentation
  (capture)      (WebSocket)    (word timestamps)       │
