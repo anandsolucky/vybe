@@ -202,8 +202,16 @@
   /* homepage */
   #sHome { margin: 0 calc(50% - 50vw); }   /* break out of the app container */
   body { overflow-x: hidden; }             /* the breakout must never scroll sideways */
+  /* The fold — header + hero + the whole combo panel — fits one screen at
+     any desktop height. --hdr is measured from the real header on resize. */
+  #sHome .fold {
+    display: flex; flex-direction: column;
+    min-height: calc(100vh - var(--fold-top, 86px));
+    min-height: calc(100svh - var(--fold-top, 86px));
+  }
   #sHome .hero-wrap {
-    position: relative; min-height: 82vh; display: flex; align-items: center;
+    position: relative; flex: 1 1 auto; min-height: 300px;
+    display: flex; align-items: center;
     overflow: hidden; margin-top: -74px; padding-top: 74px;
   }
   #sHome .hero-inner { padding-left: max(44px, 6vw) !important; }
@@ -221,7 +229,7 @@
     background: linear-gradient(90deg, rgba(10,10,15,.92) 0%, rgba(10,10,15,.55) 45%, rgba(10,10,15,.15) 75%),
                 linear-gradient(rgba(10,10,15,.15), rgba(10,10,15,.75));
   }
-  #sHome .hero-inner { padding: 60px 44px; max-width: 640px; }
+  #sHome .hero-inner { padding: 40px 44px; max-width: 640px; }
   .mega {
     font-family: var(--font-display); font-weight: 700; font-style: italic;
     text-transform: uppercase; line-height: 1.02; letter-spacing: .5px;
@@ -254,11 +262,15 @@
     padding: 26px; margin-top: -70px; position: relative; z-index: 2;
     display: flex; gap: 34px; flex-wrap: wrap;
   }
-  .combo .col { flex: 1; min-width: 300px; }
+  .combo .col { min-width: 290px; }
+  .combo .col:first-child { flex: 4 1 300px; }
+  .combo .col:last-child { flex: 5 1 340px; }   /* VYBE cards carry the weight, as in the mock */
   .combo .col-title { display: flex; align-items: center; gap: 10px; font-size: 13.5px; letter-spacing: 2.4px; font-weight: 600; margin-bottom: 16px; color: var(--white); }
   .ti.violet { color: #9B85FF; }
   .ti.lime { color: var(--lime); }
-  .lang-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; }
+  /* four across, then two — the mock's arrangement, held at any width */
+  .lang-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  @media (max-width: 1150px) { .lang-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
   .lang-tile {
     background: var(--black); border: 1px solid var(--line); border-radius: 13px;
     padding: 14px 8px 12px; text-align: center; cursor: pointer;
@@ -275,11 +287,19 @@
   .hv-card {
     position: relative; background: var(--black); border: 1px solid var(--line);
     border-radius: 16px; overflow: hidden; cursor: pointer; text-align: center;
-    padding-bottom: 12px; transition: all .16s ease;
+    padding-bottom: 13px; transition: all .16s ease;
   }
   .hv-card:hover { transform: translateY(-3px); border-color: #3A3A4A; }
   .hv-card.sel { border-color: var(--lime); box-shadow: 0 0 0 1px var(--lime), 0 10px 34px rgba(216,255,62,.12); }
-  .hv-card img.face { width: 100%; aspect-ratio: 1/1; object-fit: cover; display: block; }
+  .hv-card .art { position: relative; overflow: hidden; }
+  .hv-card .art::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(to top, var(--black) 0%, rgba(10,10,15,.72) 12%, rgba(10,10,15,0) 40%);
+  }
+  .hv-card img.face {
+    width: 100%; aspect-ratio: 1/.58; object-fit: cover; display: block;
+    object-position: center 30%; transform: scale(1.28); transform-origin: center 32%;
+  }
   /* one control, two states: an empty ring until picked, a lime tick once picked */
   .hv-card .tick2 {
     position: absolute; top: 11px; right: 11px; width: 26px; height: 26px; border-radius: 50%;
@@ -289,7 +309,7 @@
   }
   .hv-card.sel .tick2 { background: var(--lime); border-color: var(--lime); color: var(--black); }
   .hv-card b {
-    display: block; margin-top: 11px; font-family: var(--font-display);
+    display: block; margin-top: 9px; font-family: var(--font-display);
     font-size: 17px; font-weight: 700; letter-spacing: .2px; color: #B9A6FF;
   }
   .hv-card .chip { margin-top: 7px; font-size: 10px; padding: 3px 11px; letter-spacing: 1.2px; }
@@ -305,6 +325,34 @@
   .section-title .accent { color: var(--lime); }
   nav.top a { color: var(--mist); text-decoration: none; font-size: 15px; margin-right: 30px; }
   nav.top a:hover { color: var(--lime); }
+  @media (max-height: 880px) {
+    #sHome .hero-wrap { min-height: 240px; }
+    #sHome .hero-inner { padding: 26px 44px; }
+    .mega { font-size: clamp(38px, 5vw, 58px); }
+    .hero-sub { font-size: 15px; margin-top: 12px; }
+    .play-row { margin-top: 22px; }
+    .play-cta { width: 82px; height: 82px; }
+    .play-note { font-size: 18px; }
+    .combo { padding: 20px; }
+    #sHome .combo { margin-top: -34px; }
+    .lang-tile { padding: 11px 8px 9px; }
+    .lang-tile b { font-size: 16.5px; }
+  }
+  @media (max-height: 720px) {
+    #sHome .hero-wrap { min-height: 168px; }
+    #sHome .hero-inner { padding: 18px 44px; }
+    .mega { font-size: clamp(32px, 3.8vw, 46px); }
+    .hero-sub { font-size: 14px; margin-top: 10px; }
+    .play-row { margin-top: 16px; gap: 14px; }
+    .play-cta { width: 66px; height: 66px; }
+    .play-cta .i { width: 26px; height: 26px; }
+    .play-note { font-size: 16px; }
+    .combo { padding: 16px; }
+    #sHome .combo { margin-top: -14px; }
+    .combo .col-title { margin-bottom: 12px; }
+    .lang-tile b { font-size: 15.5px; }
+    .hv-card b { font-size: 15.5px; margin-top: 7px; }
+  }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 </head>
@@ -329,6 +377,7 @@
 
   <!-- HOME — the journey starts here -->
   <section id="sHome" class="screen">
+    <div class="fold">
     <div class="hero-wrap">
       <div class="hero-inner">
         <span class="badge-live">LIVE</span>
@@ -353,6 +402,7 @@
         <div class="col-title"><span class="ti lime" data-icon="equalizer" data-size="20"></span> CHOOSE YOUR <span style="color:var(--lime)">VYBE</span></div>
         <div class="home-vybes" id="homeVybes"></div>
       </div>
+    </div>
     </div>
     <div class="switch-strip"><span class="ti violet" data-icon="switch" data-size="20"></span><span>Switch your VYBE anytime — even mid-match</span></div>
 
@@ -592,7 +642,7 @@ function renderHome() {
     const sel = a.id === state.avatar_id;
     return `<div class="hv-card${sel ? " sel" : ""}" data-hv="${a.id}">
       <div class="tick2">${icon("check", 15)}</div>
-      <img class="face" src="${a.image || ""}" alt="${a.name}">
+      <div class="art"><img class="face" src="${a.image || ""}" alt="${a.name}"></div>
       <b>${a.name}</b>
       <span class="chip chip-violet">${(a.label || "").replace(" VYBE", "")}</span>
     </div>`;
@@ -614,6 +664,19 @@ function renderHome() {
       <div class="quote">“${a.quote}”</div>
     </div>`).join("");
 }
+
+/* The fold starts wherever the header and page padding leave it — measure
+   that offset so the panel lands exactly on the viewport edge, any screen. */
+function syncFold() {
+  const f = document.querySelector("#sHome .fold");
+  if (!f) return;
+  const top = Math.round(f.getBoundingClientRect().top + window.scrollY);
+  document.documentElement.style.setProperty("--fold-top", top + "px");
+}
+syncFold();
+window.addEventListener("resize", syncFold);
+window.addEventListener("load", syncFold);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(syncFold);
 
 $("homeStart").onclick = () => {
   show(state.video_type === "tab" ? "s0" : "s2");
