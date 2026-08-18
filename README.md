@@ -133,3 +133,12 @@ in [brand.md](brand.md).
 ## License
 
 [MIT](LICENSE) — © 2026 Anand Solanki. Built with passion.
+
+Bundled third-party work — hls.js (Apache-2.0), Inter and Space Grotesk
+fonts (SIL OFL 1.1) — is listed in
+[THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
+
+**A note on use:** VYBE personalizes your own, private viewing of a
+stream you already have access to. Nothing is recorded, stored, or
+redistributed. You are responsible for complying with the terms of the
+services you watch.
