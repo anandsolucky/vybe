@@ -57,7 +57,7 @@ class LiveSession:
         self.lock = threading.Lock()
         self.manifest = {
             "video": "/media/source", "video_type": "file",
-            "delay": self.delay, "sport": "cricket",
+            "delay": self.delay, "sport": cfg.get("sport", "cricket"),
             "avatar": avatar.name, "avatar_id": avatar.id,
             "active_vybes": [avatar.id], "language": "hi",
             "avatars": self._roster(cfg), "started": False,
@@ -68,6 +68,10 @@ class LiveSession:
         self._pending_id: str | None = None
         self.language = "hi"
         self._pending_lang: str | None = None
+        self.sport = cfg.get("sport", "cricket")
+        # Demo mode: every VYBE renders every beat, so switching is
+        # instant. ~3x TTS burn — opt-in per session, never the default.
+        self.parallel = False
         self.tts = self.lanes[0]["tts"]  # primary lane alias (replay, usage)
         # One narrative memory for the whole match, shared by every lane.
         self.history: list[tuple[float, str]] = []
@@ -141,9 +145,43 @@ class LiveSession:
                 self._pending_id = None
                 self.manifest.pop("queued_vybe", None)
                 return True
+            if self.parallel:
+                # Every lane already renders every beat — the switch is
+                # just which lane the player listens to.
+                lane = next((l for l in self.lanes if l["id"] == avatar_id), None)
+                if lane is None:
+                    return False
+                self.active_idx = self.lanes.index(lane)
+                self.manifest["avatar"] = lane["avatar"].name
+                self.manifest["avatar_id"] = lane["id"]
+                print(f"[pipeline] VYBE on the mic (parallel): {avatar_id}")
+                return True
             self._pending_id = avatar_id
             self.manifest["queued_vybe"] = avatar_id
         print(f"[pipeline] VYBE queued: {avatar_id}")
+        return True
+
+    def set_parallel(self, on: bool) -> bool:
+        """Pre-start only: opt in to parallel VYBES for this session."""
+        if self.t0 is not None:
+            return False   # locked once audio is flowing
+        with self.lock:
+            self.parallel = on
+            self.manifest["parallel"] = on
+        print(f"[pipeline] parallel VYBES: {'ON — ~3x TTS credits' if on else 'off'}")
+        return True
+
+    def set_sport(self, sport: str) -> bool:
+        """Pre-start only: pick which sport preset the directors use."""
+        from .director import SPORTS
+        if sport not in SPORTS:
+            return False
+        if self.t0 is not None:
+            return False   # the sport is locked once audio is flowing
+        with self.lock:
+            self.sport = sport
+            self.manifest["sport"] = sport
+        print(f"[pipeline] sport = {sport}")
         return True
 
     def switch_language(self, code: str) -> bool:
@@ -168,8 +206,8 @@ class LiveSession:
             self.language = lang
             for lane in self.lanes:
                 if lane["director"] is not None and getattr(self, "llm", None):
-                    lane["director"] = Director(self.llm, lane["avatar"], self.language,
-                                                history=self.history)
+                    lane["director"] = Director(self.llm, lane["avatar"], self.language, sport=self.sport,
+                                                history=lane.get("history", self.history))
             with self.lock:
                 self._pending_lang = None
                 self.manifest["language"] = lang
@@ -183,7 +221,7 @@ class LiveSession:
             lane = self._make_lane(load_avatar(self.cfg.get("default_language", "hi"), pending))
             self.lanes.append(lane)
         if lane["director"] is None and getattr(self, "llm", None):
-            lane["director"] = Director(self.llm, lane["avatar"], self.language,
+            lane["director"] = Director(self.llm, lane["avatar"], self.language, sport=self.sport,
                                         history=self.history)
         with self.lock:
             self.active_idx = self.lanes.index(lane)
@@ -377,6 +415,7 @@ class LiveSession:
         # Creator plan allows 5 concurrent ElevenLabs requests; 4 workers
         # leave headroom for a fit-retry. (Free plan was 2.)
         tts_pool = ThreadPoolExecutor(max_workers=4)
+        dir_pool = ThreadPoolExecutor(max_workers=4)   # parallel-mode directors
 
         if self.input_spec == "browser":
             # Tab mode: the player captures a Chrome tab and streams PCM to
@@ -420,9 +459,26 @@ class LiveSession:
         # Built after the picker window closes, so a pre-capture VYBE
         # selection takes effect.
         self._activate_pending()   # pre-start language/VYBE choices apply
-        self.lanes[self.active_idx]["director"] = Director(
-            self.llm, self.lanes[self.active_idx]["avatar"], self.language,
-            history=self.history)
+        if self.parallel:
+            # Build a lane for every available VYBE. Each keeps its own
+            # narrative history — they all commentate continuously.
+            language = self.cfg.get("default_language", "hi")
+            have = {l["id"] for l in self.lanes}
+            for avatar_id in list_avatars(language):
+                a = load_avatar(language, avatar_id)
+                if a.raw.get("coming_soon") or a.id in have:
+                    continue
+                self.lanes.append(self._make_lane(a))
+            with self.lock:
+                self.manifest["active_vybes"] = [l["id"] for l in self.lanes]
+            for lane in self.lanes:
+                lane["history"] = []
+                lane["director"] = Director(self.llm, lane["avatar"], self.language,
+                                            sport=self.sport, history=lane["history"])
+        else:
+            self.lanes[self.active_idx]["director"] = Director(
+                self.llm, self.lanes[self.active_idx]["avatar"], self.language,
+                sport=self.sport, history=self.history)
 
         def clocked_chunks():
             first = True
@@ -466,24 +522,36 @@ class LiveSession:
                 closable = len(beats)
             for i in range(processed, closable):
                 self._activate_pending()   # switches land between beats
-                lane = self.lanes[self.active_idx]
                 view = beats[: i + 2] if i + 1 < len(beats) else beats
                 processed = i + 1
+                if self.parallel:
+                    active = [l for l in self.lanes if l["director"] is not None]
+                else:
+                    active = [self.lanes[self.active_idx]]
                 call_started = time.time()
-                seg = lane["director"].segment_for(view, i)
+                if len(active) > 1:
+                    # All directors write concurrently; the per-beat barrier
+                    # keeps each lane's history in beat order.
+                    futs = [(lane, dir_pool.submit(lane["director"].segment_for, view, i))
+                            for lane in active]
+                    results = [(lane, fut.result()) for lane, fut in futs]
+                else:
+                    lane = active[0]
+                    results = [(lane, lane["director"].segment_for(view, i))]
                 took = time.time() - call_started
                 # Writer lag: how far behind the live edge this beat closed.
                 # Compare it with the delay budget — the render still needs
                 # ~3.5s after this returns.
                 edge_lag = (time.time() - self.t0) - beats[i].start if self.t0 else 0.0
                 if took > 2.5 or edge_lag > self.delay - 6:
-                    print(f"[director] [{lane['id']}] beat {beats[i].start:.2f}s "
+                    print(f"[director] beat {beats[i].start:.2f}s "
                           f"took {took:.1f}s, {edge_lag:.1f}s behind the live edge")
-                if seg:
-                    seg.lang = lane["director"].language
-                    tts_pool.submit(self._render_and_publish, seg, lane)
-                else:
-                    print(f"[director] [{lane['id']}] skip beat at {beats[i].start:.2f}s")
+                for lane, seg in results:
+                    if seg:
+                        seg.lang = lane["director"].language
+                        tts_pool.submit(self._render_and_publish, seg, lane)
+                    else:
+                        print(f"[director] [{lane['id']}] skip beat at {beats[i].start:.2f}s")
 
         # Stream ended: close out any beats the watchdog never reached.
         beats = beats_from_words(all_words)

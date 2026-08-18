@@ -19,16 +19,22 @@ dropped, never delayed — playback stays glass-smooth by design.
 
 ## What it does
 
+- **Pick a sport.** Cricket and football ship. A sport is a director
+  preset — vocabulary, outcome calls, where the excitement peaks — not a
+  codepath.
 - **Pick a VYBE.** Three Hindi personas ship today: Jatin (the pro),
   Kabir (the Gen Z), Naina (the Bombay vibe). Each has a voice, a
   register, and its own way of calling a six.
-- **Pick a language.** Hindi, Gujarati, Tamil, Marathi, Japanese and
-  Spanish ship today — switchable live during the match. A language is
-  a prompt override plus a multilingual voice, so adding one is
-  configuration, not code.
+- **Pick a language.** Hindi, Gujarati, Tamil, Marathi, Japanese,
+  Spanish, Portuguese and French ship today — switchable live during
+  the match. A language is a prompt override plus a multilingual voice,
+  so adding one is configuration, not code.
 - **Keep the stadium.** Center-cancel source separation removes the
   broadcast voice and keeps the crowd. Mono sources fall back to
   sidechain ducking.
+- **Go parallel (demo mode).** An opt-in checkbox renders every VYBE on
+  every beat so switching commentators is instant. Roughly 3× the TTS
+  cost — the default stays one lane with a short warm-up on switch.
 - **Stay honest.** A hard timing law: the AI never speaks before the
   source commentator reacts. Late lines get dropped. The video never
   waits.
@@ -111,8 +117,8 @@ Cricket is the demo, not the boundary. The pipeline never looks at the
 picture — it listens to the source audio, understands the moments, and
 performs a new track against a delayed buffer. That pattern applies to
 any live feed where the words matter and the timing is unforgiving:
-another sport, a keynote, a news desk, a live auction. Swap the sport
-preset in the director prompt and the same machinery calls it.
+another sport, a keynote, a news desk, a live auction. Football is
+already a second preset; adding a third is a prompt block, not a fork.
 
 ## Personas
 

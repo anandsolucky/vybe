@@ -23,6 +23,8 @@ LANGUAGES = {
     "mr": ("Marathi", "मराठी (Devanagari script)"),
     "ja": ("Japanese", "日本語 — natural spoken Japanese in kanji and kana"),
     "es": ("Spanish", "natural Latin-American Spanish, Latin script"),
+    "pt": ("Portuguese", "natural Brazilian Portuguese, Latin script"),
+    "fr": ("French", "natural spoken French, Latin script"),
 }
 
 BEAT_GAP = 0.8       # silence that separates two beats (seconds)
@@ -75,6 +77,36 @@ the event is mandatory; "क्या hit है" without the call is a miss.
 NEVER invent an outcome the transcript has not stated. If the beat is
 anticipation ("looking for power"), speak anticipation — no result."""
 
+FOOTBALL_PRESET = """Sport: football (soccer). You know the game cold:
+positions, build-up play, set pieces, the weight of a goal, a save, a red
+card. Read the match state from the source words (score, minute, who is
+attacking) and use it naturally. Never invent facts the transcript does
+not support.
+
+CALL OUTCOMES BY NAME. When the ball hits the net it is a GOAL — call it,
+stretched to breaking point: "GOOOOOOL!" A penalty is a PENALTY, a save is
+a SAVE, a card is YELLOW or RED. Naming the event is mandatory. NEVER
+invent an outcome the transcript has not stated. If the beat is build-up
+(a counter forming), speak the tension — no result."""
+
+# A sport is a preset, not a codepath: the preset block plus how match
+# vocabulary behaves under a language override.
+SPORTS = {
+    "cricket": {
+        "preset": CRICKET_PRESET,
+        "terms": """Cricket terms
+(six, four, bat, ball, catch, over, wicket, runs) stay in English.""",
+        "score_hint": 'Cricket scores read "68 off 49", not "68 of 49".',
+    },
+    "football": {
+        "preset": FOOTBALL_PRESET,
+        "terms": """Use the language's
+own football vocabulary — the goal call belongs to the language
+("GOOOOOL" in Portuguese or Spanish), stretched at the peaks.""",
+        "score_hint": 'Scores read "2-1", the minute reads "73rd minute".',
+    },
+}
+
 DELIVERY_LAYER = """THE DELIVERY LAYER — identical for every commentator.
 Your persona only changes how often, how strongly, and in what sequence
 you reach for these tools. The text you write IS the performance: the
@@ -105,8 +137,8 @@ loudness, and pace changes.
    Stretch trajectory and suspense words only — one or two stretches per
    big moment, never every line. A peak line combines all three:
    stretch + CAPS + [shouts]: "[shouts] ये लंबाआआआ… SIIIIX है!"
-5. PEAK WORDS explode: CAPS + exclamation, and the English cricket word
-   carries the shout (SIX! FOUR! OUT! CAUGHT!).
+5. PEAK WORDS explode: CAPS + exclamation, and the sport's own peak word
+   carries the shout (SIX! FOUR! OUT! GOOOOOOL!).
 6. REAL HUMAN NOISES belong in commentary: [laughs] at absurdity,
    [chuckles] at irony, [gasps] at a close call, [sighs] at a letdown.
    Commentators are humans reacting, not scripts being read.
@@ -133,8 +165,10 @@ what you just said). A live commentator keeps the mic warm — when in
 doubt, speak."""
 
 
-def system_prompt(avatar: Avatar, language: str = "hi") -> str:
+def system_prompt(avatar: Avatar, language: str = "hi",
+                  sport: str = "cricket") -> str:
     style = avatar.style
+    game = SPORTS.get(sport, SPORTS["cricket"])
     lang_override = ""
     if LANGUAGES.get(language):
         name, script = LANGUAGES[language]
@@ -142,15 +176,26 @@ def system_prompt(avatar: Avatar, language: str = "hi") -> str:
 
 LANGUAGE OVERRIDE — ABSOLUTE: write every line in {name}, using {script}.
 NOT Hindi. Every persona rule, the delivery layer, budgets, and complete
-sentences apply unchanged, expressed in natural {name}. Cricket terms
-(six, four, bat, ball, catch, over, wicket, runs) stay in English."""
-    rules = "\n".join(f"- {r}" for r in style.get("sentence_rules", []))
+sentences apply unchanged, expressed in natural {name}. {game["terms"]}"""
+    sentence_rules = style.get("sentence_rules", [])
+    sport_override = ""
+    if sport != "cricket":
+        # Personas were written for cricket. Drop rules that pin cricket
+        # vocabulary and tell the model the register carries, the sport
+        # changes — locked persona recipes stay untouched on disk.
+        sentence_rules = [r for r in sentence_rules if "cricket" not in r.lower()]
+        sport_override = f"""
+
+PERSONA NOTES vs THIS MATCH: persona guidance may mention cricket — today's
+match is {sport}. Apply the same register, energy, and rules to {sport};
+never use cricket vocabulary."""
+    rules = "\n".join(f"- {r}" for r in sentence_rules)
     return f"""You are {avatar.name} — {avatar.description}
-You re-voice live cricket commentary in your own words and language. You are
+You re-voice live {sport} commentary in your own words and language. You are
 the viewer's commentator: react to what just happened, never narrate the
 transcript back.
 
-{CRICKET_PRESET}
+{game["preset"]}
 
 RULE #1 — SCRIPT (never break this): every Hindi word in Devanagari,
 every English word in Latin. No romanized Hindi, ever.
@@ -159,11 +204,11 @@ every English word in Latin. No romanized Hindi, ever.
 
 RULE #2 — NAMES: the transcript comes from speech recognition and mangles
 names ("Golly", "goalie" = Kohli). Always write the real name; never copy
-a mangled token. Cricket scores read "68 off 49", not "68 of 49".
+a mangled token. {game["score_hint"]}
 
 {DELIVERY_LAYER}
 
-Register: {style.get('register', '').strip()}
+Register: {style.get('register', '').strip()}{sport_override}
 Your delivery mix (how YOU use the delivery layer):
 {style.get('delivery_mix', 'balanced use of the delivery layer').strip()}
 Slang budget: {style.get('slang_budget', '')} Use "bhai"/"bro" in at most
@@ -186,7 +231,7 @@ Hard constraints:
 - Causality: react only to what the transcript shows has already happened.
   Never predict or reveal anything beyond it.
 - ASR noise: names may be mangled (Kohli can appear as "Golly"/"goalie").
-  Infer the real name from cricket context; if unsure, drop the name.
+  Infer the real name from match context; if unsure, drop the name.
 - Do not repeat your previous lines' phrasing.
 
 Reference of your voice (do not copy verbatim):
@@ -230,11 +275,12 @@ def parse_reply(raw: str) -> dict:
 
 class Director:
     def __init__(self, llm, avatar: Avatar, language: str = "hi",
-                 history: list | None = None):
+                 history: list | None = None, sport: str = "cricket"):
         self.llm = llm
         self.avatar = avatar
         self.language = language
-        self.system = system_prompt(avatar, language)
+        self.sport = sport
+        self.system = system_prompt(avatar, language, sport)
         # The narrative memory belongs to the MATCH, not to one VYBE. A
         # lane that takes the mic mid-match must see what was already said,
         # or it opens with generic scene-setting while the picture has

@@ -47,6 +47,16 @@ def make_handler(holder, source_path: str, session_dir: Path):
                 avatar_id = self.rfile.read(length).decode("utf-8", "replace").strip()
                 ok = holder["session"].switch_lane(avatar_id)
                 self._send(200 if ok else 409, b"ok" if ok else b"rejected", "text/plain")
+            elif self.path == "/parallel":
+                length = int(self.headers.get("Content-Length", 0))
+                body = self.rfile.read(length).decode("utf-8", "replace").strip()
+                ok = holder["session"].set_parallel(body == "on")
+                self._send(200 if ok else 409, b"ok" if ok else b"rejected", "text/plain")
+            elif self.path == "/sport":
+                length = int(self.headers.get("Content-Length", 0))
+                sport = self.rfile.read(length).decode("utf-8", "replace").strip()
+                ok = holder["session"].set_sport(sport)
+                self._send(200 if ok else 409, b"ok" if ok else b"rejected", "text/plain")
             elif self.path == "/avatars":
                 length = int(self.headers.get("Content-Length", 0))
                 body = self.rfile.read(length).decode("utf-8", "replace").strip()

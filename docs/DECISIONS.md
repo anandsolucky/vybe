@@ -549,6 +549,35 @@ starts.
 
 ---
 
+## ADR-017: Sport presets, wider languages, parallel demo mode
+
+**Date:** 2026-08-18 · **Status:** accepted
+
+For the public launch the showcase needs three claims on camera: any
+sport, any language, instant switching.
+
+1. **A sport is a director preset, not a codepath.** `SPORTS` in
+   `core/director.py` maps sport → preset block + vocabulary rule +
+   score hint. Football ships beside cricket. The sport is a pre-match
+   choice (`config.yaml` `sport:`, homepage chips, `POST /sport`) and
+   locks at first audio — a mid-match sport flip would call football
+   vocabulary over a cricket picture. Persona recipes stay cricket-tuned
+   on disk; non-cricket sessions filter cricket-specific sentence rules
+   and add an explicit register-carries-over note in the prompt.
+2. **Portuguese and French join the language list** (now 8). A language
+   stays a prompt override plus the same multilingual voices. For
+   football the goal call belongs to the language ("GOOOOOL"), so the
+   terms rule is per sport.
+3. **Parallel VYBES (demo mode).** Opt-in checkbox on the share screen,
+   default OFF, `POST /parallel`, locks at first audio. ON: every
+   non-locked VYBE gets a lane with its own narrative history; every
+   beat fans out to all directors concurrently (one barrier per beat
+   keeps each lane's history ordered); the player schedules only the
+   selected lane's segments, so switching VYBEs is instant. Cost is
+   ~3× TTS (~1,400–1,500 credits/min) — the warning sits in the UI.
+   OFF remains the product default: one lane, queued switch, warming-up
+   feedback (ADR-013 economics unchanged).
+
 ## Pending decisions and actions
 
 | # | Item | Notes |

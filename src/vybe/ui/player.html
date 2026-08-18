@@ -88,6 +88,19 @@
     margin-top: 14px; color: var(--mist); font-size: 13.5px;
   }
   #s0 .secure [data-icon] { color: #9B85FF; }
+  .par-row {
+    display: flex; align-items: flex-start; gap: 13px; text-align: left;
+    margin-top: 18px; padding: 14px 18px; cursor: pointer;
+    border: 1px solid var(--line); border-radius: 14px; background: rgba(10,10,15,.45);
+    transition: border-color .16s ease;
+  }
+  .par-row:hover { border-color: var(--line-2, #33333F); }
+  .par-row input { margin-top: 3px; accent-color: var(--violet); width: 16px; height: 16px; flex: none; }
+  .par-row .par-txt { font-size: 13px; color: var(--grey); line-height: 1.55; }
+  .par-row .par-txt b { display: block; color: var(--white); font-size: 13.5px; }
+  .par-row .par-txt em { display: block; font-style: normal; color: var(--red); margin-top: 3px; }
+  .par-row:has(input:checked) { border-color: rgba(255,59,78,.5); }
+
   .platforms {
     display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: nowrap;
     overflow-x: auto;
@@ -399,7 +412,7 @@
   /* hero is full-bleed; content below shares the hero text's symmetry line */
   #sHome .combo { margin: -70px max(44px, 6vw) 0; }
   #sHome > .container { max-width: none; margin: 0; padding: 0 max(44px, 6vw); }
-  #sHome .made { margin: 16px max(44px, 6vw) 4px; }
+  #sHome .made { margin: 10px max(44px, 6vw) 2px; }
   #sHome .hero-wrap::before {
     content: ""; position: absolute; inset: 0;
     background: url('/ui/hero-virat.jpg') center/cover no-repeat;
@@ -410,7 +423,7 @@
     background: linear-gradient(90deg, rgba(10,10,15,.92) 0%, rgba(10,10,15,.55) 45%, rgba(10,10,15,.15) 75%),
                 linear-gradient(rgba(10,10,15,.15), rgba(10,10,15,.75));
   }
-  #sHome .hero-inner { padding: 40px 44px; max-width: 640px; }
+  #sHome .hero-inner { padding: 26px 44px; max-width: 640px; }
   .mega {
     font-family: var(--font-display); font-weight: 700; font-style: italic;
     text-transform: uppercase; line-height: 1.02; letter-spacing: .5px;
@@ -440,9 +453,24 @@
   .combo {
     background: rgba(23,23,31,.72); backdrop-filter: blur(14px);
     border: 1px solid var(--line); border-radius: 20px;
-    padding: 26px; margin-top: -70px; position: relative; z-index: 2;
+    padding: 20px 26px 22px; margin-top: -70px; position: relative; z-index: 2;
     display: flex; gap: 34px; flex-wrap: wrap;
   }
+  .sport-strip {
+    flex: 1 0 100%; display: flex; align-items: center; gap: 18px;
+    padding-bottom: 10px; margin-bottom: 2px; border-bottom: 1px solid var(--line);
+  }
+  .sp-label { display: flex; align-items: center; gap: 10px; font-size: 13.5px;
+    letter-spacing: 2.4px; font-weight: 600; color: var(--white); }
+  .sp-chips { display: flex; gap: 9px; }
+  .sp-chip {
+    cursor: pointer; border: 1px solid var(--line); color: var(--mist);
+    border-radius: 999px; padding: 7px 18px; font-size: 13.5px;
+    background: var(--black); transition: all .16s ease;
+  }
+  .sp-chip:hover { border-color: var(--violet); }
+  .sp-chip.sel { border-color: var(--violet); color: var(--white);
+    box-shadow: 0 0 0 1px var(--violet); }
   .combo .col { min-width: 290px; }
   .combo .col:first-child { flex: 4 1 300px; }
   .combo .col:last-child { flex: 5 1 340px; }   /* VYBE cards carry the weight, as in the mock */
@@ -521,24 +549,28 @@
     .lang-tile b { font-size: 16.5px; }
   }
   @media (max-height: 720px) {
-    #sHome .hero-wrap { min-height: 136px; }
-    #sHome .made { margin: 10px max(44px, 6vw) 2px; font-size: 12.5px; }
-    #sHome .hero-inner { padding: 18px 44px; }
-    .mega { font-size: clamp(32px, 3.8vw, 46px); }
-    .hero-sub { font-size: 14px; margin-top: 10px; }
-    .play-row { margin-top: 16px; gap: 14px; }
-    .play-cta { width: 66px; height: 66px; }
+    #sHome .hero-wrap { min-height: 120px; }
+    #sHome .made { margin: 8px max(44px, 6vw) 2px; font-size: 12.5px; }
+    #sHome .hero-inner { padding: 10px 44px; }
+    .mega { font-size: clamp(26px, 3vw, 38px); }
+    .hero-sub { display: none; }   /* the panel says it — reclaim the fold */
+    .play-row { margin-top: 12px; gap: 14px; }
+    .play-cta { width: 54px; height: 54px; }
     .play-cta .i { width: 26px; height: 26px; }
     .play-note { font-size: 16px; }
     .combo { padding: 16px; }
     #sHome .combo { margin-top: -14px; }
+    .sport-strip { padding-bottom: 10px; }
+    .sp-chip { padding: 5px 14px; font-size: 12.5px; }
     .combo .col-title { margin-bottom: 12px; }
     .lang-tile b { font-size: 15.5px; }
     .hv-card b { font-size: 15.5px; margin-top: 6px; }
     .hv-card img.face { aspect-ratio: 1/.48; }
     .hv-card { padding-bottom: 9px; }
     .hv-card .chip { margin-top: 5px; }
-    .lang-tile { padding: 9px 8px 8px; }
+    .lang-tile { padding: 8px 8px 7px; }
+    .sport-strip { padding-bottom: 8px; }
+    .combo { padding: 12px 16px 14px; }
   }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
@@ -577,6 +609,10 @@
       </div>
     </div>
     <div class="combo">
+      <div class="sport-strip">
+        <span class="sp-label"><span class="ti violet" data-icon="tv" data-size="19"></span> SPORT</span>
+        <div class="sp-chips" id="homeSports"></div>
+      </div>
       <div class="col">
         <div class="col-title"><span class="ti violet" data-icon="globe" data-size="20"></span> CHOOSE LANGUAGE</div>
         <div class="lang-grid" id="homeLangs"></div>
@@ -637,6 +673,13 @@
           <div class="secure">
             <span data-icon="lock" data-size="16"></span> Secure. Private. Only for live audio.
           </div>
+
+          <label class="par-row" for="parBox">
+            <input type="checkbox" id="parBox">
+            <span class="par-txt"><b>Parallel VYBES — instant switching</b>
+            All commentators perform every moment, so switching is immediate.
+            <em>⚠ Uses about 3× the credits. Demo sessions only.</em></span>
+          </label>
 
           <div class="platforms">
             <b>Supported platforms</b>
@@ -919,6 +962,20 @@ async function boot() {
 
 /* ---------------- homepage ---------------- */
 function renderHome() {
+  // sport chips — a pre-match choice; the pipeline locks it at first audio
+  const sp = $("homeSports");
+  if (sp) {
+    const cur = (state && state.sport) || "cricket";
+    sp.innerHTML = SPORTS_UI.map(x =>
+      `<span class="sp-chip${x.code === cur ? " sel" : ""}" data-sp="${x.code}">${x.label}</span>`).join("");
+    for (const c of sp.querySelectorAll("[data-sp]"))
+      c.onclick = async () => {
+        const res = await fetch("/sport", { method: "POST", body: c.dataset.sp });
+        if (res.ok) { state.sport = c.dataset.sp; renderHome(); }
+        else toast("The sport locks once the match starts");
+      };
+  }
+
   // language tiles
   const lg = $("homeLangs");
   if (!lg) return;
@@ -949,6 +1006,13 @@ function renderHome() {
 
 $("backHome").onclick = () => { show("sHome"); window.scrollTo(0, 0); };
 
+$("parBox").onchange = async () => {
+  const on = $("parBox").checked;
+  const res = await fetch("/parallel", { method: "POST", body: on ? "on" : "off" });
+  if (!res.ok) { $("parBox").checked = !on; toast("Parallel locks once the match starts"); }
+  else if (state) state.parallel = on;
+};
+
 $("homeStart").onclick = () => {
   show(state.video_type === "tab" ? "s0" : "s2");
   window.scrollTo(0, 0);
@@ -956,6 +1020,10 @@ $("homeStart").onclick = () => {
 poll();
 
 /* ---------------- languages + feedback ---------------- */
+const SPORTS_UI = [
+  { code: "cricket", label: "Cricket" },
+  { code: "football", label: "Football" },
+];
 const LANGS = [
   { code: "hi", native: "हिन्दी", en: "Hindi" },
   { code: "gu", native: "ગુજરાતી", en: "Gujarati" },
@@ -963,6 +1031,8 @@ const LANGS = [
   { code: "mr", native: "मराठी", en: "Marathi" },
   { code: "ja", native: "日本語", en: "Japanese" },
   { code: "es", native: "Español", en: "Spanish" },
+  { code: "pt", native: "Português", en: "Portuguese" },
+  { code: "fr", native: "Français", en: "French" },
 ];
 let toastTimer = null;
 function toast(msg) {
@@ -1015,13 +1085,20 @@ async function requestVybe(id) {
   const current = activeVybeId || state.avatar_id;
   if (id === current || id === pendingVybe) return;
   const res = await fetch("/switch", { method: "POST", body: id });
-  if (res.ok) {
-    pendingVybe = id;
-    $("topbar").classList.add("on");
-    const v = (state.avatars || []).find(a => a.id === id);
-    toast(`${v ? v.name : id} is warming up — takes the mic shortly`);
+  if (!res.ok) return;
+  const v = (state.avatars || []).find(a => a.id === id);
+  if (state.parallel && playbackStarted) {
+    // Every lane is already rendered — just retune the listener.
+    activeVybeId = id;
+    state.avatar_id = id;
+    toast(`🎙 ${v ? v.name : id} is LIVE`);
     renderAllChoosers();
+    return;
   }
+  pendingVybe = id;
+  $("topbar").classList.add("on");
+  toast(`${v ? v.name : id} is warming up — takes the mic shortly`);
+  renderAllChoosers();
 }
 
 function renderAllChoosers() {
@@ -1150,6 +1227,8 @@ function renderReady() {
 
 /* ---------------- capture (tab mode) ---------------- */
 $("shareBtn").onclick = async () => {
+  // Re-assert the parallel choice — a reset builds a fresh session.
+  if ($("parBox").checked) await fetch("/parallel", { method: "POST", body: "on" });
   try { await startTabCapture(); } catch (e) { return; }
   renderReady();
   show("sReady");
@@ -1341,6 +1420,8 @@ async function scheduleSegments() {
   const now = video.currentTime;
   for (const seg of state.segments) {
     if (scheduled.has(seg.url)) continue;
+    // Parallel mode: every lane publishes every beat — listen to one.
+    if (state.parallel && seg.vybe && seg.vybe !== (activeVybeId || state.avatar_id)) continue;
     const pcmOffset = (state.video_type === "tab" && pcmStart !== null && captureStart !== null)
       ? (pcmStart - captureStart) / 1000 : 0;
     const anchorV = (state.video_type === "tab")

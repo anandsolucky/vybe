@@ -2,6 +2,7 @@
 delay_seconds: 15
 sample_rate: 44100
 default_language: hi
+sport: cricket        # cricket | football — a sport is a director preset
 default_avatar: naina   # user 2026-08-17: Naina is the best — she leads by default
 
 providers:

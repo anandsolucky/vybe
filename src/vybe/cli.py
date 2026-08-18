@@ -81,7 +81,8 @@ def direct(args: list[str]) -> int:
     print(f"transcript: {len(words)} words")
 
     avatar = load_avatar(lang, avatar_id)
-    director = Director(OpenAICompatibleLLM(), avatar)
+    director = Director(OpenAICompatibleLLM(), avatar,
+                        sport=cfg.get("sport", "cricket"))
     segments = director.direct(words)
 
     rate = avatar.speaking_rate_wps
