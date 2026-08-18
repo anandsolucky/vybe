@@ -404,13 +404,14 @@
     min-height: calc(100svh - var(--fold-top, 86px));
   }
   #sHome .hero-wrap {
-    position: relative; flex: 1 1 auto; min-height: 300px;
+    position: relative; flex: 1 1 auto; min-height: 260px;
     display: flex; align-items: center;
     overflow: hidden; margin-top: -74px; padding-top: 74px;
+    padding-bottom: 44px;   /* clearance: content never under the panel */
   }
   #sHome .hero-inner { padding-left: max(44px, 6vw) !important; }
   /* hero is full-bleed; content below shares the hero text's symmetry line */
-  #sHome .combo { margin: -70px max(44px, 6vw) 0; }
+  #sHome .combo { margin: -34px max(44px, 6vw) 0; }
   #sHome > .container { max-width: none; margin: 0; padding: 0 max(44px, 6vw); }
   #sHome .made { margin: 10px max(44px, 6vw) 2px; }
   #sHome .hero-wrap::before {
@@ -423,17 +424,17 @@
     background: linear-gradient(90deg, rgba(10,10,15,.92) 0%, rgba(10,10,15,.55) 45%, rgba(10,10,15,.15) 75%),
                 linear-gradient(rgba(10,10,15,.15), rgba(10,10,15,.75));
   }
-  #sHome .hero-inner { padding: 26px 44px; max-width: 640px; }
+  #sHome .hero-inner { padding: 16px 44px; max-width: 640px; }
   .mega {
     font-family: var(--font-display); font-weight: 700; font-style: italic;
     text-transform: uppercase; line-height: 1.02; letter-spacing: .5px;
-    font-size: clamp(42px, 6.5vw, 78px);
+    font-size: clamp(38px, 5.4vw, 64px);
   }
   .mega .grad { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .hero-sub { color: var(--mist); font-size: 17px; margin-top: 18px; line-height: 1.55; }
-  .play-row { display: flex; align-items: center; gap: 18px; margin-top: 34px; }
+  .hero-sub { color: var(--mist); font-size: 16px; margin-top: 13px; line-height: 1.5; }
+  .play-row { display: flex; align-items: center; gap: 18px; margin-top: 22px; }
   .play-cta {
-    width: 100px; height: 100px; border-radius: 50%; cursor: pointer; padding: 0;
+    width: 84px; height: 84px; border-radius: 50%; cursor: pointer; padding: 0;
     background: rgba(10,10,15,.86); position: relative; border: none; color: var(--white);
     display: flex; align-items: center; justify-content: center;
     transition: transform .18s ease, box-shadow .25s ease;
@@ -453,7 +454,7 @@
   .combo {
     background: rgba(23,23,31,.72); backdrop-filter: blur(14px);
     border: 1px solid var(--line); border-radius: 20px;
-    padding: 20px 26px 22px; margin-top: -70px; position: relative; z-index: 2;
+    padding: 20px 26px 22px; margin-top: -34px; position: relative; z-index: 2;
     display: flex; gap: 34px; flex-wrap: wrap;
   }
   .sport-strip {
@@ -508,6 +509,8 @@
   .hv-card img.face {
     width: 100%; aspect-ratio: 1/.58; object-fit: cover; display: block;
     object-position: center 30%; transform: scale(1.28); transform-origin: center 32%;
+    /* wide screens: art height follows width — cap it against the fold */
+    max-height: clamp(120px, 22vh, 240px);
   }
   /* one control, two states: an empty ring until picked, a lime tick once picked */
   .hv-card .tick2 {
@@ -536,12 +539,17 @@
   nav.top a { color: var(--mist); text-decoration: none; font-size: 15px; margin-right: 30px; }
   nav.top a:hover { color: var(--lime); }
   @media (max-height: 880px) {
-    #sHome .hero-wrap { min-height: 240px; }
-    #sHome .hero-inner { padding: 26px 44px; }
-    .mega { font-size: clamp(38px, 5vw, 58px); }
-    .hero-sub { font-size: 15px; margin-top: 12px; }
-    .play-row { margin-top: 22px; }
-    .play-cta { width: 82px; height: 82px; }
+    #sHome .hero-wrap { min-height: 200px; padding-bottom: 36px; }
+    #sHome .hero-inner { padding: 10px 44px; }
+    .mega { font-size: clamp(34px, 4.2vw, 46px); }
+    .hero-sub { font-size: 14px; margin-top: 8px; }
+    .play-row { margin-top: 12px; }
+    .play-cta { width: 60px; height: 60px; }
+    .play-note { font-size: 17px; }
+    .hv-card img.face { max-height: clamp(110px, 17vh, 200px); }
+    .hv-card b { font-size: 15px; margin-top: 8px; }
+    .hv-card { padding-bottom: 10px; }
+    #sHome .made { margin: 8px max(44px, 6vw) 2px; }
     .play-note { font-size: 18px; }
     .combo { padding: 20px; }
     #sHome .combo { margin-top: -34px; }
@@ -549,13 +557,13 @@
     .lang-tile b { font-size: 16.5px; }
   }
   @media (max-height: 720px) {
-    #sHome .hero-wrap { min-height: 120px; }
+    #sHome .hero-wrap { min-height: 110px; padding-bottom: 38px; }
     #sHome .made { margin: 8px max(44px, 6vw) 2px; font-size: 12.5px; }
-    #sHome .hero-inner { padding: 10px 44px; }
-    .mega { font-size: clamp(26px, 3vw, 38px); }
+    #sHome .hero-inner { padding: 6px 44px; }
+    .mega { font-size: clamp(24px, 2.8vw, 34px); }
     .hero-sub { display: none; }   /* the panel says it — reclaim the fold */
-    .play-row { margin-top: 12px; gap: 14px; }
-    .play-cta { width: 54px; height: 54px; }
+    .play-row { margin-top: 10px; gap: 14px; }
+    .play-cta { width: 50px; height: 50px; }
     .play-cta .i { width: 26px; height: 26px; }
     .play-note { font-size: 16px; }
     .combo { padding: 16px; }
@@ -1074,12 +1082,24 @@ async function requestLang(code) {
     return;
   }
   pendingLang = code;
+  pendingSince = Date.now();
   $("topbar").classList.add("on");
   const lang = LANGS.find(x => x.code === code);
   toast(`${lang.native} incoming — your VYBE is switching language`);
   renderAllChoosers();
   renderHome();
 }
+
+let pendingSince = 0;
+setInterval(() => {
+  if (!pendingVybe && !pendingLang) return;
+  if (pendingSince && Date.now() - pendingSince > 30000) {
+    pendingVybe = null; pendingLang = null; pendingSince = 0;
+    $("topbar").classList.remove("on");
+    toast("That switch is taking too long — try again, or reset from Home");
+    renderAllChoosers();
+  }
+}, 2500);
 
 async function requestVybe(id) {
   const current = activeVybeId || state.avatar_id;
@@ -1096,6 +1116,7 @@ async function requestVybe(id) {
     return;
   }
   pendingVybe = id;
+  pendingSince = Date.now();
   $("topbar").classList.add("on");
   toast(`${v ? v.name : id} is warming up — takes the mic shortly`);
   renderAllChoosers();
@@ -1180,7 +1201,15 @@ function currentSrcNow() {
   return (state && state.video_type === "tab") ? tabSrcNow() : srcNow();
 }
 
+let pipelineErrorShown = false;
+function checkPipelineError() {
+  if (!state || !state.pipeline_error || pipelineErrorShown) return;
+  pipelineErrorShown = true;
+  toast("⚠ The commentary engine hit an error — go Home to restart the session");
+}
+
 function updateBuffer() {
+  checkPipelineError();
   if (playbackStarted || !state) return;
   const tab = state.video_type === "tab";
   if (tab && captureStart === null) return;
@@ -1459,12 +1488,12 @@ async function scheduleSegments() {
         if (activeVybeId !== laneId) { activeVybeId = laneId; changed = true; }
         if (activeLang !== segLang) { activeLang = segLang; changed = true; }
         if (pendingVybe === laneId) {
-          pendingVybe = null; changed = true;
+          pendingVybe = null; pendingSince = 0; changed = true;
           const v = (state.avatars || []).find(a => a.id === laneId);
           toast(`🎙 ${v ? v.name : laneId} is LIVE`);
         }
         if (pendingLang === segLang) {
-          pendingLang = null; changed = true;
+          pendingLang = null; pendingSince = 0; changed = true;
           const l = LANGS.find(x => x.code === segLang);
           toast(`🎙 ${l ? l.native : segLang} is LIVE`);
         }

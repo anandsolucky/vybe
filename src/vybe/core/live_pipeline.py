@@ -20,6 +20,10 @@ from ..providers.tts_elevenlabs import ElevenLabsTTS
 from .avatars import Avatar, list_avatars, load_avatar
 from .capture import AVFoundationSource, CaptureMux, FileSource
 from .director import BEAT_GAP, Director, beats_from_words
+
+# Dense sports close beats sooner: football commentary rarely pauses, so a
+# 7s forced split leaves too little of the 15s budget for LLM + TTS + lead.
+SPORT_BEAT_LEN = {"cricket": 7.0, "football": 5.0}
 from . import audio
 
 ASR_RATE = 16000
@@ -69,6 +73,7 @@ class LiveSession:
         self.language = "hi"
         self._pending_lang: str | None = None
         self.sport = cfg.get("sport", "cricket")
+        self.max_beat_len = SPORT_BEAT_LEN.get(self.sport, 7.0)
         # Demo mode: every VYBE renders every beat, so switching is
         # instant. ~3x TTS burn — opt-in per session, never the default.
         self.parallel = False
@@ -180,6 +185,7 @@ class LiveSession:
             return False   # the sport is locked once audio is flowing
         with self.lock:
             self.sport = sport
+            self.max_beat_len = SPORT_BEAT_LEN.get(sport, 7.0)
             self.manifest["sport"] = sport
         print(f"[pipeline] sport = {sport}")
         return True
@@ -514,7 +520,8 @@ class LiveSession:
                 if not asr_thread.is_alive():
                     stream_done = True
 
-            beats = beats_from_words(all_words)
+            self._activate_pending()   # switches land even in silence
+            beats = beats_from_words(all_words, max_len=self.max_beat_len)
             # A beat is safe to process when a later beat exists (its slot
             # is known) or the watchdog says the source has gone quiet.
             closable = len(beats) - 1
@@ -531,13 +538,25 @@ class LiveSession:
                 call_started = time.time()
                 if len(active) > 1:
                     # All directors write concurrently; the per-beat barrier
-                    # keeps each lane's history in beat order.
+                    # keeps each lane's history in beat order. One lane
+                    # failing skips that lane's line, nothing more.
                     futs = [(lane, dir_pool.submit(lane["director"].segment_for, view, i))
                             for lane in active]
-                    results = [(lane, fut.result()) for lane, fut in futs]
+                    results = []
+                    for lane, fut in futs:
+                        try:
+                            results.append((lane, fut.result()))
+                        except Exception as e:
+                            print(f"[director] [{lane['id']}] beat "
+                                  f"{beats[i].start:.2f}s FAILED: {e}")
                 else:
                     lane = active[0]
-                    results = [(lane, lane["director"].segment_for(view, i))]
+                    try:
+                        results = [(lane, lane["director"].segment_for(view, i))]
+                    except Exception as e:
+                        print(f"[director] [{lane['id']}] beat "
+                              f"{beats[i].start:.2f}s FAILED: {e}")
+                        results = []
                 took = time.time() - call_started
                 # Writer lag: how far behind the live edge this beat closed.
                 # Compare it with the delay budget — the render still needs
@@ -554,7 +573,7 @@ class LiveSession:
                         print(f"[director] [{lane['id']}] skip beat at {beats[i].start:.2f}s")
 
         # Stream ended: close out any beats the watchdog never reached.
-        beats = beats_from_words(all_words)
+        beats = beats_from_words(all_words, max_len=self.max_beat_len)
         lane = self.lanes[self.active_idx]
         for i in range(processed, len(beats)):
             seg = lane["director"].segment_for(beats, i)
@@ -577,6 +596,11 @@ class LiveSession:
                 self._run_replay()
             else:
                 self._run_live()
+        except Exception as e:
+            with self.lock:
+                self.manifest["pipeline_error"] = str(e)[:200]
+            print(f"[pipeline] FATAL: {e}")
+            raise
         finally:
             print(f"[pipeline] done — {len(self.manifest['segments'])} published, "
                   f"{self.manifest['drops']} dropped")

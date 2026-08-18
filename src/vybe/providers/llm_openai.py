@@ -6,6 +6,7 @@ LLM_MODEL. Works with OpenAI, OpenRouter, Groq, Ollama, and vLLM.
 
 import json
 import os
+import time
 import urllib.request
 
 
@@ -37,8 +38,20 @@ class OpenAICompatibleLLM:
             },
             method="POST",
         )
-        with urllib.request.urlopen(req, timeout=120) as resp:
-            data = json.loads(resp.read())
+        # One DNS hiccup must not cost a beat — or, in parallel mode,
+        # the whole session. Retry transient network failures briefly.
+        last_err = None
+        for attempt in range(3):
+            try:
+                with urllib.request.urlopen(req, timeout=120) as resp:
+                    data = json.loads(resp.read())
+                break
+            except (urllib.error.URLError, TimeoutError, ConnectionError, OSError) as e:
+                last_err = e
+                if attempt < 2:
+                    time.sleep(0.5 * (attempt + 1))
+        else:
+            raise last_err
         usage = data.get("usage") or {}
         self.calls += 1
         self.prompt_tokens += usage.get("prompt_tokens", 0)
