@@ -246,6 +246,26 @@ class LiveSession:
         with self.lock:
             self.manifest["avatars"] = roster
 
+    def reload_persona(self, vybe_id: str) -> None:
+        """An edited persona takes effect on the next beat, mid-match."""
+        lane = next((l for l in self.lanes if l["id"] == vybe_id), None)
+        if lane is None:
+            return
+        try:
+            avatar = load_avatar(self.cfg.get("default_language", "hi"), vybe_id)
+        except Exception as e:
+            print(f"[pipeline] could not reload {vybe_id}: {e}")
+            return
+        with self.lock:
+            lane["avatar"] = avatar
+            lane["tts"] = self._build_tts(avatar)
+            lane["cps_samples"] = []      # the new persona sets its own pace
+            if lane["director"] is not None and getattr(self, "llm", None):
+                lane["director"] = Director(
+                    self.llm, avatar, self.language, sport=self.sport,
+                    history=lane.get("history", self.history))
+        print(f"[pipeline] persona reloaded: {vybe_id}")
+
     def abandon(self) -> None:
         """Retire this session (reset flow): stop waiting for capture."""
         self._abandoned = True

@@ -39,6 +39,17 @@ def load_avatar(language: str, avatar_id: str, root: Path = ROOT) -> Avatar:
         # language, so they sit outside the language folders.
         path = root / "avatars" / "custom" / f"{avatar_id}.yaml"
     data = yaml.safe_load(path.read_text())
+
+    # A local edit of a shipped persona is stored beside it, never in it:
+    # the tuned recipe on disk stays pristine and resets in one click.
+    override = root / "avatars" / "custom" / "overrides" / f"{avatar_id}.yaml"
+    if override.exists():
+        patch = yaml.safe_load(override.read_text()) or {}
+        for key, value in patch.items():
+            if key in ("id", "engine", "engine_config"):
+                continue      # the voice is never edited, only the persona
+            data[key] = value
+        data["edited"] = True
     return Avatar(
         id=data["id"],
         name=data["name"],

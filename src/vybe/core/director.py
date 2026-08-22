@@ -18,6 +18,7 @@ from .avatars import Avatar
 
 LANGUAGES = {
     "hi": None,  # Hindi is the personas' native register — no override
+    "en": ("English", "natural spoken English, Latin script"),
     "gu": ("Gujarati", "ગુજરાતી (Gujarati script)"),
     "ta": ("Tamil", "தமிழ் (Tamil script)"),
     "mr": ("Marathi", "मराठी (Devanagari script)"),

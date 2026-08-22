@@ -69,10 +69,14 @@ def make_handler(holder, source_path: str, session_dir: Path):
             ctype = self.MIME.get(path.suffix[1:], "application/octet-stream")
             self._send(200, path.read_bytes(), ctype)
 
-        def _refresh_roster(self) -> None:
+        def _refresh_roster(self, reload_id: str | None = None) -> None:
             session = holder.get("session")
-            if session is not None and hasattr(session, "refresh_roster"):
+            if session is None:
+                return
+            if hasattr(session, "refresh_roster"):
                 session.refresh_roster()
+            if reload_id and hasattr(session, "reload_persona"):
+                session.reload_persona(reload_id)
 
         def _create_vybe(self) -> None:
             length = int(self.headers.get("Content-Length", 0))
@@ -119,9 +123,31 @@ def make_handler(holder, source_path: str, session_dir: Path):
             else:
                 self._send(404, b"not found", "text/plain")
 
+        def _edit_vybe(self, vybe_id: str) -> None:
+            length = int(self.headers.get("Content-Length", 0))
+            prompt = self.rfile.read(length).decode("utf-8", "replace")
+            try:
+                from .core.vybe_maker import edit_vybe
+                from .providers.llm_openai import OpenAICompatibleLLM
+                result = edit_vybe(vybe_id, prompt, OpenAICompatibleLLM())
+            except Exception as e:
+                self._send(400, str(e).encode("utf-8"), "text/plain")
+                return
+            self._refresh_roster(vybe_id)
+            self._send(200, json.dumps(result).encode(), "application/json")
+
         def do_POST(self) -> None:
             if self.path == "/vybes":
                 self._create_vybe()
+            elif self.path.startswith("/vybes/") and self.path.endswith("/edit"):
+                self._edit_vybe(self.path.split("/")[2])
+            elif self.path.startswith("/vybes/") and self.path.endswith("/reset"):
+                vybe_id = self.path.split("/")[2]
+                from .core.vybe_maker import reset_vybe
+                ok = reset_vybe(vybe_id)
+                self._refresh_roster(vybe_id)
+                self._send(200 if ok else 404, b"ok" if ok else b"nothing to reset",
+                           "text/plain")
             elif self.path == "/reset":
                 ok = bool(holder.get("reset")) and holder["reset"]()
                 self._send(200 if ok else 409, b"ok" if ok else b"unsupported", "text/plain")
@@ -167,6 +193,14 @@ def make_handler(holder, source_path: str, session_dir: Path):
                 self._send_static(UI_DIR.parents[2] / "brand" / "assets", "favicon/favicon.ico")
             elif self.path.startswith("/brand/"):
                 self._send_static(UI_DIR.parents[2] / "brand" / "assets", self.path[7:])
+            elif self.path.startswith("/vybes/") and self.path != "/vybes/slots":
+                try:
+                    from .core.vybe_maker import describe_vybe
+                    body = json.dumps(describe_vybe(self.path.split("/")[2])).encode()
+                except Exception as e:
+                    self._send(404, str(e).encode("utf-8"), "text/plain")
+                    return
+                self._send(200, body, "application/json")
             elif self.path == "/vybes/slots":
                 try:
                     from .providers.voice_lab import VoiceLab
