@@ -30,6 +30,10 @@ dropped, never delayed — playback stays glass-smooth by design.
   Spanish, Portuguese and French ship today — switchable live during
   the match. A language is a prompt override plus a multilingual voice,
   so adding one is configuration, not code.
+- **Make your own VYBE.** Name it, describe the vibe in a sentence, add
+  3 to 10 voice clips. The clips become a cloned voice and the sentence
+  becomes a full persona spec. Custom VYBES stay on your machine
+  (`avatars/custom/`, gitignored) and delete cleanly, voice included.
 - **Keep the stadium.** Center-cancel source separation removes the
   broadcast voice and keeps the crowd. Mono sources fall back to
   sidechain ducking.
@@ -129,6 +133,11 @@ Personas live in `avatars/<lang>/<id>.yaml`: voice config, speaking
 rate, register, slang budget, and an approved sample line. Add a
 persona by adding a file. The brand rules for anything user-facing are
 in [brand.md](brand.md).
+
+Ones you create in the app land in `avatars/custom/` and are gitignored.
+Creating them needs an ElevenLabs API key with Instant Voice Cloning,
+Voices (read and write) and User (read) enabled, and it uses one of your
+plan's cloned voice slots. Only clone a voice you have the right to use.
 
 ## License
 

@@ -13,7 +13,11 @@ card_quote: "BHAI! What a shot! That's straight up cinema!"
 engine: elevenlabs
 engine_config:
   model_id: eleven_v3
-  voice_id: Zh845mZcOk2fUoLpOzfD   # APPROVED 2026-08-16 — won the shout test ('way better')
+  # TEMPORARY 2026-08-18 (user request, revert on ask). Approved voice is
+  # Zh845mZcOk2fUoLpOzfD — it won the shout test ('way better'). Put it back
+  # by swapping the two lines below.
+  voice_id: yJBYtCabp7FlTYyCPRVr   # temporary trial voice
+  # voice_id: Zh845mZcOk2fUoLpOzfD  # APPROVED 2026-08-16
   fallback_voice_id: iP95p4xoKVk53GoZ742B  # "Chris" — previous approved voice
   voice_settings:
     stability: 0.0                 # Creative — maximum tag response

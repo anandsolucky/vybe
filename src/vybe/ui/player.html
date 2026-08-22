@@ -497,7 +497,79 @@
   .lang-tile.sel { border-color: var(--violet); box-shadow: 0 0 0 1px var(--violet), 0 10px 30px rgba(115,87,255,.28); }
   .lang-tile.sel span { color: var(--lime); }
   .lang-tile.qd { animation: pulseRing 1.4s ease-in-out infinite; }
-  .home-vybes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  /* three across; anything the viewer creates scrolls in beside them,
+     so the panel keeps its height and the fold survives */
+  .home-vybes { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 2px;
+    scrollbar-width: thin; scrollbar-color: #33333F transparent; }
+  .home-vybes > * { flex: 1 0 calc((100% - 28px) / 3); }
+  .hv-card .mono {
+    width: 100%; aspect-ratio: 1/.58; display: flex; align-items: center;
+    justify-content: center; background: var(--grad-soft);
+    font-family: var(--font-display); font-weight: 700; font-size: 44px; color: var(--white);
+  }
+  .hv-card .kill {
+    position: absolute; top: 11px; left: 11px; width: 26px; height: 26px; z-index: 3;
+    border-radius: 50%; border: 1.5px solid rgba(247,247,242,.4); color: var(--white);
+    background: rgba(10,10,15,.6); backdrop-filter: blur(4px); cursor: pointer;
+    display: none; align-items: center; justify-content: center; padding: 0;
+  }
+  .hv-card:hover .kill { display: flex; }
+  .hv-card .kill:hover { border-color: var(--red); color: var(--red); }
+
+  .mk-open {
+    margin-left: auto; cursor: pointer; font-family: var(--font-body);
+    background: rgba(115,87,255,.14); border: 1px solid rgba(115,87,255,.5);
+    color: #B9A6FF; border-radius: 999px; padding: 5px 14px;
+    font-size: 12px; font-weight: 600; letter-spacing: .6px;
+    transition: background .16s ease, border-color .16s ease;
+  }
+  .mk-open:hover { background: rgba(115,87,255,.26); border-color: var(--violet); }
+
+  .modal {
+    position: fixed; inset: 0; z-index: 90; display: none;
+    align-items: center; justify-content: center; padding: 24px;
+    background: rgba(6,6,10,.72); backdrop-filter: blur(6px);
+  }
+  .modal.open { display: flex; }
+  .modal-card {
+    width: 100%; max-width: 520px; max-height: 88vh; overflow-y: auto;
+    background: rgba(16,16,22,.98); border: 1px solid var(--line);
+    border-radius: 20px; padding: 24px 26px 26px;
+    animation: fadeUp .24s ease both;
+    scrollbar-width: thin; scrollbar-color: #33333F transparent;
+  }
+  .mk-head { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 20px; }
+  .mk-body { display: flex; flex-direction: column; }
+  .mk-label { font-size: 11px; letter-spacing: 2px; font-weight: 600; color: var(--grey);
+    margin: 14px 0 7px; }
+  .mk-label:first-child { margin-top: 0; }
+  .mk-input {
+    background: var(--black); border: 1px solid var(--line); border-radius: 12px;
+    color: var(--white); font-family: var(--font-body); font-size: 14.5px;
+    padding: 12px 14px; width: 100%; outline: none; transition: border-color .16s ease;
+  }
+  .mk-input:focus { border-color: var(--violet); }
+  .mk-input::placeholder { color: #5A5A66; }
+  .mk-area { resize: vertical; line-height: 1.55; min-height: 84px; }
+  .mk-drop {
+    display: flex; align-items: center; gap: 12px; cursor: pointer;
+    border: 1.5px dashed var(--line-2, #33333F); border-radius: 12px;
+    padding: 16px; color: var(--grey); font-size: 14px;
+    transition: border-color .16s ease, color .16s ease;
+  }
+  .mk-drop:hover { border-color: var(--violet); color: var(--mist); }
+  .mk-drop.ready { border-style: solid; border-color: var(--lime); color: var(--white); }
+  .mk-consent {
+    display: flex; align-items: flex-start; gap: 11px; cursor: pointer;
+    margin-top: 16px; font-size: 13px; color: var(--grey); line-height: 1.5;
+  }
+  .mk-consent input { margin-top: 2px; width: 16px; height: 16px; flex: none;
+    accent-color: var(--violet); }
+  .mk-status { font-size: 13.5px; margin: 16px 0 2px; min-height: 20px; color: var(--mist); }
+  .mk-status.err { color: var(--red); }
+  .mk-status.busy { color: #B9A6FF; }
+  .mk-note { font-size: 12px; color: var(--grey); margin-top: 12px; text-align: center; }
+
   .hv-card {
     position: relative; background: var(--black); border: 1px solid var(--line);
     border-radius: 16px; overflow: hidden; cursor: pointer; text-align: center;
@@ -630,7 +702,10 @@
         <div class="lang-grid" id="homeLangs"></div>
       </div>
       <div class="col">
-        <div class="col-title"><span class="ti lime" data-icon="equalizer" data-size="20"></span> CHOOSE YOUR <span style="color:var(--lime)">VYBE</span></div>
+        <div class="col-title"><span class="ti lime" data-icon="equalizer" data-size="20"></span>
+          CHOOSE YOUR <span style="color:var(--lime)">VYBE</span>
+          <button class="mk-open" id="mkOpen" title="Create your own VYBE">+ Create</button>
+        </div>
         <div class="home-vybes" id="homeVybes"></div>
       </div>
     </div>
@@ -838,6 +913,44 @@
       <span id="clock"></span>
     </div>
   </section>
+
+<div class="modal" id="makerModal">
+  <div class="modal-card">
+    <div class="mk-head">
+      <div>
+        <div class="ch-title">Create your <span class="gi">VYBE</span></div>
+        <div class="ch-sub">Name it, describe the vibe, add a few voice clips.</div>
+      </div>
+      <button class="ch-close" id="mkClose" title="Close" aria-label="Close"
+              data-icon="close" data-size="20"></button>
+    </div>
+
+    <div class="mk-body">
+      <label class="mk-label" for="mkName">NAME</label>
+      <input class="mk-input" id="mkName" maxlength="40" placeholder="Ravi" autocomplete="off">
+
+      <label class="mk-label" for="mkPrompt">THE VIBE</label>
+      <textarea class="mk-input mk-area" id="mkPrompt" rows="3"
+        placeholder="An exciting 25 year old with a radio jockey background. Fast, funny, talks to you like a friend, and completely loses it on a big moment."></textarea>
+
+      <label class="mk-label" for="mkFiles">VOICE CLIPS</label>
+      <label class="mk-drop" for="mkFiles" id="mkDrop">
+        <span class="ti violet" data-icon="mic" data-size="22"></span>
+        <span id="mkDropText">Choose 3 to 10 clips of the voice</span>
+      </label>
+      <input type="file" id="mkFiles" accept="audio/*" multiple hidden>
+
+      <label class="mk-consent" for="mkConsent">
+        <input type="checkbox" id="mkConsent">
+        <span>This voice is mine, or the person it belongs to said yes.</span>
+      </label>
+
+      <div class="mk-status" id="mkStatus"></div>
+      <button class="btn btn-cta" id="mkCreate" style="width:100%;margin-top:6px">Create my VYBE</button>
+      <div class="mk-note" id="mkSlots"></div>
+    </div>
+  </div>
+</div>
 </main>
 
 <script src="/hls.min.js"></script>
@@ -1003,18 +1116,109 @@ function renderHome() {
   const hv = $("homeVybes");
   hv.innerHTML = (state.avatars || []).map(a => {
     const sel = a.id === state.avatar_id;
+    const art = a.image
+      ? `<img class="face" src="${a.image}" alt="${a.name}">`
+      : `<div class="mono">${(a.name || "?").trim()[0].toUpperCase()}</div>`;
+    const kill = a.custom
+      ? `<button class="kill" data-kill="${a.id}" title="Delete this VYBE"
+           aria-label="Delete ${a.name}">${icon("close", 13)}</button>` : "";
     return `<div class="hv-card${sel ? " sel" : ""}" data-hv="${a.id}">
-      <div class="tick2">${icon("check", 15)}</div>
-      <div class="art"><img class="face" src="${a.image || ""}" alt="${a.name}"></div>
+      <div class="tick2">${icon("check", 15)}</div>${kill}
+      <div class="art">${art}</div>
       <b>${a.name}</b>
       <span class="chip chip-violet">${(a.label || "").replace(" VYBE", "")}</span>
     </div>`;
   }).join("");
   for (const c of hv.querySelectorAll("[data-hv]"))
     c.onclick = async () => { await chooseStarter(c.dataset.hv); renderHome(); };
+  for (const k of hv.querySelectorAll("[data-kill]"))
+    k.onclick = async (e) => {
+      e.stopPropagation();
+      const id = k.dataset.kill;
+      const v = (state.avatars || []).find(a => a.id === id);
+      if (!confirm(`Delete ${v ? v.name : id}? The cloned voice goes too.`)) return;
+      const res = await fetch(`/vybes/${id}`, { method: "DELETE" });
+      if (res.ok) { toast("VYBE deleted"); await poll(); renderHome(); }
+      else toast("Could not delete that VYBE");
+    };
   paintIcons(hv);
 
 }
+
+/* ---------------- the VYBE maker ---------------- */
+function mkToggle(open) {
+  $("makerModal").classList.toggle("open", open);
+  if (!open) return;
+  $("mkStatus").textContent = "";
+  $("mkStatus").className = "mk-status";
+  fetch("/vybes/slots").then(r => r.json()).then(d => {
+    if (d.error) {
+      $("mkSlots").textContent = d.error.slice(0, 160);
+      return;
+    }
+    $("mkSlots").textContent = d.limit
+      ? `${d.used} of ${d.limit} voice slots used on your ElevenLabs plan.`
+      : `${d.used} cloned voices on your ElevenLabs plan.`;
+  }).catch(() => {});
+}
+$("mkOpen").onclick = () => mkToggle(true);
+$("mkClose").onclick = () => mkToggle(false);
+$("makerModal").onclick = (e) => { if (e.target.id === "makerModal") mkToggle(false); };
+
+$("mkFiles").onchange = () => {
+  const n = $("mkFiles").files.length;
+  const ok = n >= 3 && n <= 10;
+  $("mkDropText").textContent = n
+    ? `${n} clip${n === 1 ? "" : "s"} selected${ok ? "" : " — needs 3 to 10"}`
+    : "Choose 3 to 10 clips of the voice";
+  $("mkDrop").classList.toggle("ready", ok);
+};
+
+$("mkCreate").onclick = async () => {
+  const name = $("mkName").value.trim();
+  const prompt = $("mkPrompt").value.trim();
+  const files = $("mkFiles").files;
+  const status = $("mkStatus");
+  const fail = (msg) => { status.textContent = msg; status.className = "mk-status err"; };
+
+  if (!name) return fail("Give your VYBE a name.");
+  if (prompt.length < 12) return fail("Describe the vibe in a sentence or two.");
+  if (files.length < 3 || files.length > 10) return fail("Add between 3 and 10 voice clips.");
+  if (!$("mkConsent").checked) return fail("Confirm you have the right to use this voice.");
+
+  const body = new FormData();
+  body.append("name", name);
+  body.append("prompt", prompt);
+  body.append("consent", "yes");
+  for (const f of files) body.append("clips", f);
+
+  $("mkCreate").disabled = true;
+  status.className = "mk-status busy";
+  const beats = ["Writing the persona…", "Cloning the voice…", "Almost there…"];
+  let i = 0;
+  status.textContent = beats[0];
+  const tick = setInterval(() => { status.textContent = beats[++i % beats.length]; }, 4000);
+
+  try {
+    const res = await fetch("/vybes", { method: "POST", body });
+    const text = await res.text();
+    if (!res.ok) throw new Error(text || "that did not work");
+    const made = JSON.parse(text);
+    clearInterval(tick);
+    $("mkCreate").disabled = false;
+    mkToggle(false);
+    await poll();
+    await chooseStarter(made.id);
+    renderHome();
+    toast(`🎙 ${made.name} is ready`);
+    if (made.requires_verification)
+      toast("ElevenLabs wants voice verification before this one can speak");
+  } catch (e) {
+    clearInterval(tick);
+    $("mkCreate").disabled = false;
+    fail(String(e.message || e));
+  }
+};
 
 $("backHome").onclick = () => { show("sHome"); window.scrollTo(0, 0); };
 

@@ -34,6 +34,10 @@ class Avatar:
 
 def load_avatar(language: str, avatar_id: str, root: Path = ROOT) -> Avatar:
     path = root / "avatars" / language / f"{avatar_id}.yaml"
+    if not path.exists():
+        # Custom VYBES the viewer made live here. They work in every
+        # language, so they sit outside the language folders.
+        path = root / "avatars" / "custom" / f"{avatar_id}.yaml"
     data = yaml.safe_load(path.read_text())
     return Avatar(
         id=data["id"],
@@ -51,5 +55,10 @@ def load_avatar(language: str, avatar_id: str, root: Path = ROOT) -> Avatar:
 
 
 def list_avatars(language: str, root: Path = ROOT) -> list[str]:
+    """Shipped personas first, then whatever the viewer has created."""
     lang_dir = root / "avatars" / language
-    return sorted(p.stem for p in lang_dir.glob("*.yaml"))
+    shipped = sorted(p.stem for p in lang_dir.glob("*.yaml"))
+    custom_dir = root / "avatars" / "custom"
+    custom = sorted(p.stem for p in custom_dir.glob("*.yaml")) \
+        if custom_dir.exists() else []
+    return shipped + [c for c in custom if c not in shipped]

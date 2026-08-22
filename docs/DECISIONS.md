@@ -578,6 +578,42 @@ sport, any language, instant switching.
    OFF remains the product default: one lane, queued switch, warming-up
    feedback (ADR-013 economics unchanged).
 
+## ADR-018: The VYBE maker (custom personas)
+
+**Date:** 2026-08-18 · **Status:** accepted
+
+Viewers can create their own VYBE: a name, a one line vibe, and 3 to 10
+voice clips.
+
+1. **A persona is still just a YAML file.** The maker writes the same
+   shape the shipped personas use, so the director, the roster, the
+   player and the chooser need no special case. The LLM expands the one
+   line vibe into the full spec (register, delivery mix, slang budget,
+   sentence rules, sample), written in English as instructions for the
+   director.
+2. **Voices are cloned through ElevenLabs IVC.** `POST /v1/voices/add`
+   with the clips, `DELETE /v1/voices/{id}` to remove. Every voice is
+   named `<Name> · VYBE sports` so the whole set is easy to find and
+   clear. Deleting a VYBE deletes its voice; if the delete call fails the
+   persona still goes, because a persona pointing at nothing is worse
+   than a stray voice.
+3. **Custom VYBES are local and gitignored** (`avatars/custom/`). Cloned
+   voices belong to the person who made them and must never reach the
+   public repo.
+4. **Consent is a gate, not a note.** The create call is rejected without
+   an explicit confirmation that the maker has the right to use the
+   voice. The repo is public; anyone who forks it inherits the gate.
+5. **Order of operations:** validate the clips, then write the persona,
+   then clone. A failed clone wastes one cheap LLM call; a failed spec
+   after cloning would strand one of the plan's voice slots.
+6. **The API key needs scopes** the text-to-speech key does not have:
+   Instant Voice Cloning, Voices read and write, User read. Without them
+   the maker reports the exact permission and the dashboard fix.
+
+Custom VYBES carry no portrait, so cards render a monogram tile. The
+homepage VYBE row scrolls sideways rather than wrapping, which keeps the
+one screen fold intact as the roster grows.
+
 ## Pending decisions and actions
 
 | # | Item | Notes |

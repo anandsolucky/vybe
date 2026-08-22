@@ -111,6 +111,7 @@ class LiveSession:
                 "quote": a.raw.get("card_quote", ""),
                 "image": a.raw.get("card_image"),
                 "locked": bool(a.raw.get("coming_soon")),
+                "custom": bool(a.raw.get("custom")),
             })
         return roster
 
@@ -238,6 +239,12 @@ class LiveSession:
             self.manifest["active_vybes"] = [lane["id"]]
         self._switch_mark = (lane["id"], time.time())
         print(f"[pipeline] VYBE on the mic: {lane['id']}")
+
+    def refresh_roster(self) -> None:
+        """Re-read the personas on disk. A new custom VYBE shows up live."""
+        roster = self._roster(self.cfg)
+        with self.lock:
+            self.manifest["avatars"] = roster
 
     def abandon(self) -> None:
         """Retire this session (reset flow): stop waiting for capture."""

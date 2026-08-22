@@ -1,11 +1,46 @@
 """Local player server: serves the player page, session state, and media."""
 
+import json
+import re
 import shutil
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 UI_DIR = Path(__file__).resolve().parent / "ui"
+MAX_UPLOAD = 64 * 1024 * 1024   # all clips of one custom VYBE together
+
+
+def parse_multipart(body: bytes, content_type: str) -> tuple[dict, list]:
+    """Minimal multipart/form-data reader (the cgi module is gone in 3.13+).
+
+    Returns (text fields, [(field, filename, bytes), ...]).
+    """
+    if "boundary=" not in content_type:
+        raise ValueError("that upload was not multipart form data")
+    boundary = content_type.split("boundary=", 1)[1].strip().strip('"')
+    delim = b"--" + boundary.encode()
+    fields, files = {}, []
+    for part in body.split(delim)[1:-1]:
+        part = part.lstrip(b"\r\n")
+        if not part:
+            continue
+        head, _, data = part.partition(b"\r\n\r\n")
+        if data.endswith(b"\r\n"):
+            data = data[:-2]
+        disp = ""
+        for line in head.decode("utf-8", "replace").splitlines():
+            if line.lower().startswith("content-disposition"):
+                disp = line
+        name = re.search(r'name="([^"]*)"', disp)
+        if not name:
+            continue
+        filename = re.search(r'filename="([^"]*)"', disp)
+        if filename and filename.group(1):
+            files.append((name.group(1), filename.group(1), data))
+        else:
+            fields[name.group(1)] = data.decode("utf-8", "replace")
+    return fields, files
 
 
 def make_handler(holder, source_path: str, session_dir: Path):
@@ -34,8 +69,60 @@ def make_handler(holder, source_path: str, session_dir: Path):
             ctype = self.MIME.get(path.suffix[1:], "application/octet-stream")
             self._send(200, path.read_bytes(), ctype)
 
+        def _refresh_roster(self) -> None:
+            session = holder.get("session")
+            if session is not None and hasattr(session, "refresh_roster"):
+                session.refresh_roster()
+
+        def _create_vybe(self) -> None:
+            length = int(self.headers.get("Content-Length", 0))
+            if length > MAX_UPLOAD:
+                self._send(413, b"Those clips are too large together.", "text/plain")
+                return
+            body = self.rfile.read(length)
+            try:
+                fields, files = parse_multipart(
+                    body, self.headers.get("Content-Type", ""))
+            except ValueError as e:
+                self._send(400, str(e).encode("utf-8"), "text/plain")
+                return
+            if fields.get("consent") != "yes":
+                self._send(400, b"Confirm you have the right to use this voice.",
+                           "text/plain")
+                return
+            try:
+                from .core.vybe_maker import create_vybe
+                from .providers.llm_openai import OpenAICompatibleLLM
+                result = create_vybe(
+                    fields.get("name", ""), fields.get("prompt", ""),
+                    [(filename, data) for _, filename, data in files],
+                    OpenAICompatibleLLM(),
+                )
+            except Exception as e:
+                self._send(400, str(e).encode("utf-8"), "text/plain")
+                return
+            self._refresh_roster()
+            self._send(200, json.dumps(result).encode(), "application/json")
+
+        def do_DELETE(self) -> None:
+            if self.path.startswith("/vybes/"):
+                vybe_id = self.path.rsplit("/", 1)[-1]
+                try:
+                    from .core.vybe_maker import delete_vybe
+                    ok = delete_vybe(vybe_id)
+                except Exception as e:
+                    self._send(400, str(e).encode("utf-8"), "text/plain")
+                    return
+                self._refresh_roster()
+                self._send(200 if ok else 404, b"ok" if ok else b"not found",
+                           "text/plain")
+            else:
+                self._send(404, b"not found", "text/plain")
+
         def do_POST(self) -> None:
-            if self.path == "/reset":
+            if self.path == "/vybes":
+                self._create_vybe()
+            elif self.path == "/reset":
                 ok = bool(holder.get("reset")) and holder["reset"]()
                 self._send(200 if ok else 409, b"ok" if ok else b"unsupported", "text/plain")
             elif self.path == "/language":
@@ -80,8 +167,14 @@ def make_handler(holder, source_path: str, session_dir: Path):
                 self._send_static(UI_DIR.parents[2] / "brand" / "assets", "favicon/favicon.ico")
             elif self.path.startswith("/brand/"):
                 self._send_static(UI_DIR.parents[2] / "brand" / "assets", self.path[7:])
+            elif self.path == "/vybes/slots":
+                try:
+                    from .providers.voice_lab import VoiceLab
+                    body = json.dumps(VoiceLab().slots()).encode()
+                except Exception as e:
+                    body = json.dumps({"error": str(e)}).encode()
+                self._send(200, body, "application/json")
             elif self.path == "/state":
-                import json
                 self._send(200, json.dumps(holder["session"].state()).encode(),
                            "application/json")
             elif self.path == "/media/source":
