@@ -614,6 +614,40 @@ Custom VYBES carry no portrait, so cards render a monogram tile. The
 homepage VYBE row scrolls sideways rather than wrapping, which keeps the
 one screen fold intact as the roster grows.
 
+## ADR-019: Killing the clicks in the crowd bed
+
+**Date:** 2026-08-18 · **Status:** accepted
+
+Reported symptom: a steady click-click-click under the crowd once the
+broadcast voice is cancelled. Center cancel itself is a continuous
+operation and cannot click. Five real discontinuities were behind it, and
+all five are now fixed.
+
+1. **The drift correction was the main one.** A hard seek cuts the audio
+   stream mid sample. It fired whenever drift crossed 0.4s, checked every
+   second, so on a busy machine it fired roughly every second. Drift is
+   now corrected with playback rate (up to 5%, which crowd noise hides
+   completely), with a deadband at 0.08s. A seek is kept only for a gap
+   over 1.5s, and the bed dips for 220ms around it so the discontinuity
+   lands in silence.
+2. **Voice segments had hard edges.** An mp3 rarely starts or ends on a
+   zero crossing. Every segment now fades in over 8ms and out over 14ms,
+   measured against what actually plays (a late line starts part way in).
+3. **The sidechain duck stepped.** It jumped to a fixed value with
+   `setValueAtTime` before ramping, once per line. All gain moves now use
+   `cancelAndHoldAtTime` and ramp from wherever the curve already is.
+4. **The mono detector could flap.** One threshold at 0.08, checked every
+   3s, flipped the bed back and forth when the ratio sat on it. Now
+   hysteresis (0.06 in, 0.12 out) plus two agreeing readings.
+5. **The bed was unfiltered.** L minus R leaves DC and low rumble where
+   the channels disagree and a hard top where they nearly cancel, all
+   amplified by the 1.2 bed gain. The bed now runs through a 95Hz high
+   pass, an 11kHz low pass, and a gentle compressor (3:1, soft knee).
+
+Buffer stalls also dip the bed, since a stall ends with a discontinuity
+too. Real separation (Demucs class) stays on the backlog; this is about
+making the cheap method behave.
+
 ## Pending decisions and actions
 
 | # | Item | Notes |

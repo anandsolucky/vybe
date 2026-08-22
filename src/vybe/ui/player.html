@@ -1044,7 +1044,7 @@ const video = $("video"), caption = $("caption");
 let state = null, clockOffset = 0;
 let ctx, gainOriginal, gainBed, gainVoice, gainDuck, gainMaster, sideAnalyser, midAnalyser;
 let scheduled = new Set(), activeNodes = [];
-let bedIsMono = false, newestAnchorStarted = -1;
+let bedIsMono = false, newestAnchorStarted = -1, bedVotes = 0;
 let mode = "original", playbackStarted = false;
 let activeVybeId = null;      // which lane is AUDIBLE right now
 let activeLang = "hi";        // which language is AUDIBLE right now
@@ -1052,6 +1052,7 @@ let pendingVybe = null;       // queued until actually heard
 let pendingLang = null;       // queued until actually heard
 let ccOn = true;
 const BED_GAIN = 1.2, DUCK_BED = 0.30, DUCK_TALK = 0.06;
+const FADE_IN = 0.008, FADE_OUT = 0.014;   // click free segment edges
 let captureStream = null, captureStart = null, pcmStart = null, mediaChunks = [], liveCtx;
 let sourceBuffer = null, initialSkew = null;
 let isPaused = false, pauseStartedAt = 0, extraDelaySec = 0;
@@ -1661,7 +1662,10 @@ function startDelayedPlayback() {
   });
   video.play();
 }
-video.addEventListener("waiting", () => console.warn("[vybe] video buffering/stall"));
+video.addEventListener("waiting", () => {
+  console.warn("[vybe] video buffering/stall");
+  duckBedFor(0.25);      // a stall ends with a discontinuity; cover it
+});
 
 function initFileVideo() {
   if (state.video_type === "hls" && window.Hls && Hls.isSupported()) {
@@ -1691,8 +1695,20 @@ function buildAudioGraph() {
   splitter.connect(side, 0);
   splitter.connect(inverted, 1);
   inverted.connect(side);
+
+  // L minus R leaves DC and low rumble where the two channels disagree,
+  // and a hard top end where they nearly cancel. Clean both, then let a
+  // gentle compressor round off what is left, or the bed spits.
+  const bedHP = ctx.createBiquadFilter();
+  bedHP.type = "highpass"; bedHP.frequency.value = 95; bedHP.Q.value = 0.6;
+  const bedLP = ctx.createBiquadFilter();
+  bedLP.type = "lowpass"; bedLP.frequency.value = 11000; bedLP.Q.value = 0.6;
+  const bedComp = ctx.createDynamicsCompressor();
+  bedComp.threshold.value = -30; bedComp.knee.value = 26; bedComp.ratio.value = 3;
+  bedComp.attack.value = 0.012; bedComp.release.value = 0.28;
+
   gainBed = ctx.createGain(); gainBed.gain.value = 0;
-  side.connect(gainBed).connect(gainMaster);
+  side.connect(bedHP).connect(bedLP).connect(bedComp).connect(gainBed).connect(gainMaster);
 
   gainDuck = ctx.createGain(); gainDuck.gain.value = 0;
   src.connect(gainDuck).connect(gainMaster);
@@ -1714,18 +1730,28 @@ function buildAudioGraph() {
       let s = 0; for (const v of buf) s += v * v;
       return Math.sqrt(s / buf.length);
     };
-    const mono = rms(sideAnalyser) < rms(midAnalyser) * 0.08;
-    if (mono !== bedIsMono) {
-      bedIsMono = mono;
-      console.warn(`[vybe] bed: ${mono ? "mono -> ducked original" : "stereo -> center-cancel"}`);
-      applyBedGains();
+    // Hysteresis plus two agreeing readings: a ratio sitting on one
+    // threshold would otherwise flip the bed back and forth every 3s.
+    const ratio = rms(sideAnalyser) / Math.max(1e-9, rms(midAnalyser));
+    let want = bedIsMono;
+    if (!bedIsMono && ratio < 0.06) want = true;
+    if (bedIsMono && ratio > 0.12) want = false;
+    if (want !== bedIsMono) {
+      bedVotes++;
+      if (bedVotes >= 2) {
+        bedIsMono = want; bedVotes = 0;
+        console.warn(`[vybe] bed: ${want ? "mono -> ducked original" : "stereo -> center-cancel"}`);
+        applyBedGains();
+      }
+    } else {
+      bedVotes = 0;
     }
   }, 3000);
 }
 
 function applyBedGains() {
   const t = ctx.currentTime, RAMP = 0.15;
-  const target = (g, v) => { g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(v, t + RAMP); };
+  const target = (g, v) => { holdGain(g.gain, t); g.gain.linearRampToValueAtTime(v, t + RAMP); };
   if (mode === "vybe") {
     target(gainOriginal, 0); target(gainVoice, 1);
     target(gainBed, bedIsMono ? 0 : BED_GAIN);
@@ -1741,6 +1767,50 @@ function setMode(next) {
   $("modeLabel").textContent = "mode: " + (next === "vybe" ? (activeVybeId || state.avatar_id) : "original");
   caption.classList.toggle("onscreen", ccOn && next === "vybe" && caption.innerHTML.trim() !== "");
   renderRail();
+}
+
+/* ---------------- staying on the clock ---------------- */
+/* A hard seek cuts the audio stream mid sample, and that is a click. It
+   used to fire whenever drift crossed 0.4s, which on a busy machine is
+   about once a second: the click-click-click under the crowd. Small drift
+   is now corrected by playback rate, which the crowd bed hides
+   completely, and a seek is kept for the rare large gap. */
+const RATE_MAX = 0.05;     // 5% is inaudible on crowd noise
+const DRIFT_DEADBAND = 0.08;
+const DRIFT_SEEK = 1.5;
+
+function correctDrift() {
+  if (video.paused || isNaN(video.duration)) return;
+  const drift = video.currentTime - currentSrcNow();
+  if (Math.abs(drift) > DRIFT_SEEK) {
+    console.warn(`[vybe] drift ${drift.toFixed(2)}s — seeking`);
+    duckBedFor(0.22);      // hide the discontinuity behind a short dip
+    video.currentTime = Math.max(0, currentSrcNow());
+    video.playbackRate = 1;
+    return;
+  }
+  if (Math.abs(drift) > DRIFT_DEADBAND) {
+    const adjust = Math.max(-RATE_MAX, Math.min(RATE_MAX, drift * 0.12));
+    video.playbackRate = 1 - adjust;
+  } else if (video.playbackRate !== 1) {
+    video.playbackRate = 1;
+  }
+}
+
+/* Cancel pending automation but keep the curve continuous. */
+function holdGain(param, when) {
+  if (param.cancelAndHoldAtTime) param.cancelAndHoldAtTime(when);
+  else param.cancelScheduledValues(when);
+}
+
+/* Drop the bed briefly so a seek glitch lands in silence. */
+function duckBedFor(seconds) {
+  if (!ctx || !gainBed || mode !== "vybe" || bedIsMono) return;
+  const g = gainBed.gain, t = ctx.currentTime;
+  holdGain(g, t);
+  g.linearRampToValueAtTime(0, t + 0.02);
+  g.setValueAtTime(0, t + seconds);
+  g.linearRampToValueAtTime(BED_GAIN, t + seconds + 0.12);
 }
 
 /* ---------------- scheduling ---------------- */
@@ -1772,15 +1842,24 @@ async function scheduleSegments() {
       node.connect(segGain).connect(gainVoice);
       const lead = anchorV - video.currentTime;
       const startAt = ctx.currentTime + Math.max(0, lead);
+      // What actually gets played: a late line starts part way in.
+      const playDur = Math.max(0.05, decoded.duration + Math.min(0, lead));
       for (const prev of activeNodes) {
         if (prev.startAt + prev.dur > startAt) {
-          prev.gain.gain.setValueAtTime(1, Math.max(ctx.currentTime, startAt - 0.12));
+          const cut = Math.max(ctx.currentTime, startAt - 0.12);
+          holdGain(prev.gain.gain, cut);
           prev.gain.gain.linearRampToValueAtTime(0, startAt);
           try { prev.node.stop(startAt + 0.02); } catch (e) {}
         }
       }
+      // An mp3 rarely starts or ends on a zero crossing, and a hard start
+      // or stop on a non-zero sample is exactly what a click is.
+      segGain.gain.setValueAtTime(0, startAt);
+      segGain.gain.linearRampToValueAtTime(1, startAt + FADE_IN);
+      segGain.gain.setValueAtTime(1, startAt + playDur - FADE_OUT);
+      segGain.gain.linearRampToValueAtTime(0, startAt + playDur);
       newestAnchorStarted = Math.max(newestAnchorStarted, seg.anchor);
-      activeNodes.push({ startAt, dur: decoded.duration, node, gain: segGain, anchor: seg.anchor });
+      activeNodes.push({ startAt, dur: playDur, node, gain: segGain, anchor: seg.anchor });
       const laneId = seg.vybe || state.avatar_id;
       const segLang = seg.lang || "hi";
       setTimeout(() => {
@@ -1804,11 +1883,13 @@ async function scheduleSegments() {
       }, Math.max(0, lead) * 1000);
       while (activeNodes.length > 8) activeNodes.shift();
       if (bedIsMono && mode === "vybe") {
+        // Ramp from wherever the duck currently sits. Jumping to a fixed
+        // value first put a step in the waveform, once per line.
         const g = gainDuck.gain;
-        g.setValueAtTime(DUCK_BED, Math.max(ctx.currentTime, startAt - 0.15));
+        holdGain(g, Math.max(ctx.currentTime, startAt - 0.15));
         g.linearRampToValueAtTime(DUCK_TALK, startAt);
-        g.setValueAtTime(DUCK_TALK, startAt + decoded.duration);
-        g.linearRampToValueAtTime(DUCK_BED, startAt + decoded.duration + 0.5);
+        g.setValueAtTime(DUCK_TALK, startAt + playDur);
+        g.linearRampToValueAtTime(DUCK_BED, startAt + playDur + 0.5);
       }
       if (lead >= 0) node.start(startAt);
       else node.start(ctx.currentTime, -lead);
@@ -1854,11 +1935,7 @@ async function startWatching() {
     $("barTime").textContent = fmtTime(video.currentTime);
     $("barLag").textContent = "Live streaming";
     $("clock").textContent = `source t=${video.currentTime.toFixed(1)}s`;
-    const drift = video.currentTime - currentSrcNow();
-    if (Math.abs(drift) > 0.4 && !video.paused && !isNaN(video.duration)) {
-      console.warn(`[vybe] drift ${drift.toFixed(2)}s — reseeking`);
-      video.currentTime = Math.max(0, currentSrcNow());
-    }
+    correctDrift();
   }, 1000);
 }
 $("startBtn").onclick = startWatching;
